@@ -1,1 +1,3 @@
-// doGetを実装しindex.htmlを返す
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("index").setTitle("GAS Pages");
+}

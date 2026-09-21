@@ -13,21 +13,14 @@
   "license": "MIT",
   "author": "tutttuwi",
   "type": "commonjs",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "eleventy --serve",
     "build": "eleventy",
-    "deploy": "pnpm build && clasp push && clasp deploy --deploymentId=your-deployment-id"
+    "push": "pnpm build && clasp push",
+    "deploy": "node -e \"const id=process.env.DEPLOYMENT_ID; if(!id||id==='your-deployment-id'){console.error('Set DEPLOYMENT_ID to a real clasp deployment ID. List IDs with: pnpm exec clasp deployments'); process.exit(1)}\" && pnpm push && clasp deploy --deploymentId=\"$DEPLOYMENT_ID\""
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
-    "@google/clasp": "^3.2.0",
-    "marked": "^17.0.3",
-    "vite": "^7.3.1",
-    "vite-plugin-markdown": "^2.3.0"
+    "@google/clasp": "^3.2.0"
   }
 }

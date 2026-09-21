@@ -1,0 +1,48 @@
+---
+permalink: /index.html
+eleventyExcludeFromCollections: true
+---
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ site.title }}</title>
+    <style>
+      {% include "styles.css" %}
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <p class="brand">{{ site.title }}</p>
+        <nav class="nav" aria-label="ページ">
+          {% for page in collections.pages %}
+          <a href="#{{ page.fileSlug }}"{% if loop.first %} aria-current="page"{% endif %}>{{ page.data.title }}</a>
+          {% endfor %}
+        </nav>
+      </aside>
+      <div class="main">
+        {% if collections.pages.length %}
+          {% for page in collections.pages %}
+          <article class="article" id="{{ page.fileSlug }}" data-page{% if not loop.first %} hidden{% endif %}>
+            <h1>{{ page.data.title }}</h1>
+            {{ page.templateContent | safe }}
+          </article>
+          {% endfor %}
+        {% else %}
+          <p class="empty">表示するページがありません。docs/pages/ に Markdown を追加してください。</p>
+        {% endif %}
+        <footer class="footer">
+          {% if site.footerImage %}
+          <img src="{{ site.footerImage }}" alt="" />
+          {% endif %}
+          <p>{{ site.copyright }}</p>
+        </footer>
+      </div>
+    </div>
+    <script>
+      {% include "script.js" %}
+    </script>
+  </body>
+</html>
