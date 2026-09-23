@@ -1,0 +1,82 @@
+---
+title: 通知ルール
+order: 2
+---
+
+<p>フォーム回答の監視と Slack 宛先を、このページから登録します。フォーム側への GAS 設置は不要です。</p>
+
+<div class="notice" data-local-banner hidden>ローカルプレビューです。シート参照と Slack 送信はブラウザ内のモックで動きます。</div>
+<p class="status" data-status hidden></p>
+
+<section class="panel">
+  <h2>Slack 宛先</h2>
+  <p class="lede">Incoming Webhook を名前付きで保存します。複数のフォームから同じチャンネルへ送る場合は、宛先を使い回してください。</p>
+  <div data-destination-list></div>
+  <form class="stack" data-destination-form>
+    <input type="hidden" name="id" />
+    <div class="grid">
+      <label class="field">
+        <span>名前</span>
+        <input name="name" required placeholder="お問い合わせ通知" />
+      </label>
+      <label class="field">
+        <span>Webhook URL</span>
+        <input name="url" type="url" placeholder="https://hooks.slack.com/services/..." autocomplete="off" />
+      </label>
+    </div>
+    <p class="hint" data-destination-url-hint hidden>編集時は URL を空のままだと、保存済みの値を維持します。</p>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">宛先を保存</button>
+      <button type="button" class="btn" data-action="reset-destination">クリア</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>監視ルール</h2>
+  <p class="lede">回答先スプレッドシートの新しい行を検知して、選んだ Slack 宛先へ送ります。登録時点の最終行までは既読になります。</p>
+  <div data-rule-list></div>
+  <form class="stack" data-rule-form>
+    <input type="hidden" name="id" />
+    <div class="grid">
+      <label class="field">
+        <span>ルール名</span>
+        <input name="name" required placeholder="お問い合わせフォーム" />
+      </label>
+      <label class="field">
+        <span>Slack 宛先</span>
+        <select name="destinationId" required></select>
+      </label>
+    </div>
+    <label class="field">
+      <span>スプレッドシートの URL または ID</span>
+      <input name="spreadsheetUrl" required placeholder="https://docs.google.com/spreadsheets/d/..." />
+    </label>
+    <div class="actions">
+      <button type="button" class="btn" data-action="load-sheets">シート一覧を読み込む</button>
+    </div>
+    <div class="grid">
+      <label class="field">
+        <span>シート</span>
+        <input name="sheetName" list="sheet-options" required placeholder="Form Responses 1" />
+        <datalist id="sheet-options"></datalist>
+      </label>
+      <label class="field checkbox">
+        <input name="enabled" type="checkbox" checked />
+        <span>このルールを有効にする</span>
+      </label>
+    </div>
+    <label class="field">
+      <span>通知メッセージ</span>
+      <textarea name="messageTemplate" rows="8" placeholder="*新しい回答*（{{_ruleName}}）&#10;• 氏名: {{氏名}}"></textarea>
+    </label>
+    <p class="hint">列名は <code>{{列名}}</code> で埋め込めます。ほかに <code>{{_ruleName}}</code> <code>{{_sheetName}}</code> <code>{{_rowNumber}}</code> が使えます。空欄で保存すると、列名から雛形を作ります。</p>
+    <div class="actions">
+      <button type="button" class="btn" data-action="fill-template">ヘッダーから雛形を作る</button>
+      <button type="button" class="btn" data-action="preview-template">プレビュー</button>
+      <button type="submit" class="btn btn-primary">ルールを保存</button>
+      <button type="button" class="btn" data-action="reset-rule">クリア</button>
+    </div>
+    <pre class="preview" data-preview hidden></pre>
+  </form>
+</section>
