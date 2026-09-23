@@ -42,3 +42,5 @@ DEPLOYMENT_ID=AKfycb... pnpm run deploy
 ## ページの追加
 
 `docs/pages/` に Markdown を追加します。Front Matter の `title` と `order` がサイドバーのラベルと並び順になります。詳細は `docs/README.md` を見てください。
+
+配色は `docs/_data/site.json` の `theme` です。項目の意味と「システム / ライト / ダーク」切替は `docs/_data/README.md` を見てください。
