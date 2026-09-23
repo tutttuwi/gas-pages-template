@@ -32,9 +32,11 @@ pnpm exec clasp create --type webapp --title "gas-pages" --rootDir dist
 
 `clasp create` が `scriptId` を書いてくれます。既存プロジェクトを使う場合は、`.clasp.json` の `YOUR_SCRIPT_ID` を差し替えてください。
 
-コードだけ更新する場合は `pnpm push` です。`pnpm push` と `pnpm run deploy` は `clasp push --force` を使うので、マニフェスト更新の確認（`Do you want to push and overwrite?`）は出さず、ローカルの `appsscript.json` でリモートを上書きします。Web アプリのデプロイ版を更新する場合は、`pnpm exec clasp deployments` で ID を確認し、環境変数 `DEPLOYMENT_ID` を付けて実行します。未設定やプレースホルダのまま `pnpm run deploy` すると、意図しない新規デプロイを作らないよう途中で止まります。
+コードだけ更新する場合は `pnpm push` です。`pnpm push` と `pnpm run deploy` は `clasp push --force` を使うので、マニフェスト更新の確認（`Do you want to push and overwrite?`）は出さず、ローカルの `appsscript.json` でリモートを上書きします。Web アプリのデプロイ版を更新する場合は `pnpm run deploy:latest` です。`clasp deployments` の一覧から直近の Deployment ID（バージョン番号が最大のもの。バージョンが無い場合は一覧の末尾）を `DEPLOYMENT_ID` に入れて `pnpm run deploy` します。ID を自分で指定する場合は、`pnpm exec clasp deployments` で確認してから環境変数を付けて実行します。未設定やプレースホルダのまま `pnpm run deploy` すると、意図しない新規デプロイを作らないよう途中で止まります。
 
 ```sh
+pnpm run deploy:latest
+# または
 pnpm exec clasp deployments
 DEPLOYMENT_ID=AKfycb... pnpm run deploy
 ```

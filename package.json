@@ -17,7 +17,8 @@
     "dev": "eleventy --serve",
     "build": "eleventy",
     "push": "pnpm build && clasp push --force",
-    "deploy": "node -e \"const id=process.env.DEPLOYMENT_ID; if(!id||id==='your-deployment-id'){console.error('Set DEPLOYMENT_ID to a real clasp deployment ID. List IDs with: pnpm exec clasp deployments'); process.exit(1)}\" && pnpm push && clasp deploy --deploymentId=\"$DEPLOYMENT_ID\""
+    "deploy": "node -e \"const id=process.env.DEPLOYMENT_ID; if(!id||id==='your-deployment-id'){console.error('Set DEPLOYMENT_ID to a real clasp deployment ID. List IDs with: pnpm exec clasp deployments'); process.exit(1)}\" && pnpm push && clasp deploy --deploymentId=\"$DEPLOYMENT_ID\"",
+    "deploy:latest": "node scripts/deploy-latest.js"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
