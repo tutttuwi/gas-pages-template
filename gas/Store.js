@@ -453,6 +453,21 @@ function storeSaveSettings(settings) {
   });
 }
 
+function storeUpsertById_(items, item) {
+  var found = false;
+  var next = (items || []).map(function (current) {
+    if (current.id !== item.id) {
+      return current;
+    }
+    found = true;
+    return item;
+  });
+  if (!found) {
+    next.push(item);
+  }
+  return next;
+}
+
 function storeNewId_() {
   return Utilities.getUuid();
 }
