@@ -2,6 +2,7 @@
 permalink: /index.html
 eleventyExcludeFromCollections: true
 ---
+{% set themeStorageKey = "gas-pages-theme" %}
 <!DOCTYPE html>
 <html lang="ja" data-theme="system">
   <head>
@@ -11,7 +12,7 @@ eleventyExcludeFromCollections: true
     <script>
       (function () {
         try {
-          var theme = window.localStorage.getItem("gas-pages-theme");
+          var theme = window.localStorage.getItem("{{ themeStorageKey }}");
           if (theme === "light" || theme === "dark" || theme === "system") {
             document.documentElement.setAttribute("data-theme", theme);
           }

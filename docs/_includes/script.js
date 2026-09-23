@@ -1,6 +1,5 @@
 (function () {
-  // Keep this key in sync with the FOUC script in docs/index.njk.
-  var THEME_KEY = "gas-pages-theme";
+  var THEME_KEY = "{{ themeStorageKey }}";
   var THEMES = { system: true, light: true, dark: true };
   var buttons = Array.prototype.slice.call(document.querySelectorAll("[data-theme-value]"));
 
