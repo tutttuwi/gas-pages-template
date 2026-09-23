@@ -1,0 +1,31 @@
+{% macro palette(tokens) %}
+  --bg: {{ tokens.bg }};
+  --text: {{ tokens.text }};
+  --muted: {{ tokens.muted }};
+  --accent: {{ tokens.accent }};
+  --sidebar: {{ tokens.sidebar }};
+  --sidebar-text: {{ tokens.sidebarText }};
+  --sidebar-muted: {{ tokens.sidebarMuted }};
+  --code-bg: {{ tokens.codeBg }};
+  --code-text: {{ tokens.codeText }};
+  --inline-code-bg: {{ tokens.inlineCodeBg }};
+{% endmacro %}
+
+:root,
+[data-theme="system"],
+[data-theme="light"] {
+  color-scheme: light;
+  {{ palette(site.theme.light) | safe }}
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  {{ palette(site.theme.dark) | safe }}
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+    {{ palette(site.theme.dark) | safe }}
+  }
+}
