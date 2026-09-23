@@ -165,10 +165,14 @@
     ).join("\n");
   }
 
+  function mockPlain(value) {
+    return String(value == null ? "" : value).replace(/</g, "<\u200b");
+  }
+
   function mockRender(template, fields) {
     return String(template || "").replace(/\{\{\s*([^}]+)\s*\}\}/g, function (_, key) {
       var name = String(key || "").trim();
-      return fields[name] == null ? "" : String(fields[name]);
+      return fields[name] == null ? "" : mockPlain(fields[name]);
     });
   }
 
@@ -685,6 +689,12 @@
       }).join("") + "</ul>";
     }
 
+    function loadLogs() {
+      return gasRun("apiListLogs").then(render).catch(function (error) {
+        showStatus(root, errorMessage(error), true);
+      });
+    }
+
     root.addEventListener("click", function (event) {
       var button = event.target.closest("button");
       if (!button) {
@@ -692,9 +702,7 @@
       }
       if (button.getAttribute("data-action") === "reload-logs") {
         setDisabled(root, true);
-        gasRun("apiListLogs").then(render).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
+        loadLogs().then(function () {
           setDisabled(root, false);
         });
         return;
@@ -712,9 +720,13 @@
       }
     });
 
-    gasRun("apiListLogs").then(render).catch(function (error) {
-      showStatus(root, errorMessage(error), true);
+    window.addEventListener("hashchange", function () {
+      if (!root.hidden) {
+        loadLogs();
+      }
     });
+
+    loadLogs();
   }
 
   document.querySelectorAll("[data-page]").forEach(function (page) {

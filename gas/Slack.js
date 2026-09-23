@@ -4,6 +4,12 @@ function slackAssertWebhookUrl(url) {
   }
 }
 
+function slackPlain_(value) {
+  // Slack は <!channel> や <@U...> を本文中の特殊記法として展開する。
+  // 差し込み値側の "<" だけを分断し、テンプレート本文の装飾は残す。
+  return String(value == null ? "" : value).replace(/</g, "<\u200b");
+}
+
 function slackRender(template, fields) {
   var source = String(template || "").trim();
   if (!source) {
@@ -12,7 +18,7 @@ function slackRender(template, fields) {
         return key.charAt(0) !== "_";
       })
       .map(function (key) {
-        return key + ": " + (fields[key] == null ? "" : fields[key]);
+        return key + ": " + slackPlain_(fields[key]);
       })
       .join("\n");
   }
@@ -21,7 +27,7 @@ function slackRender(template, fields) {
     if (!key || !Object.prototype.hasOwnProperty.call(fields, key) || fields[key] == null) {
       return "";
     }
-    return String(fields[key]);
+    return slackPlain_(fields[key]);
   });
 }
 
