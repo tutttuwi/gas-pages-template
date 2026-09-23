@@ -259,6 +259,31 @@ body {
   padding-top: 1.4rem;
 }
 
+.field.checkbox.solo {
+  padding-top: 0;
+}
+
+.source-editor,
+.source-list,
+.source-card {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.source-editor-head,
+.source-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.source-card {
+  padding: 0.85rem;
+  background: var(--bg);
+  border-radius: 0.65rem;
+}
+
 .field.checkbox input {
   width: auto;
 }
@@ -332,6 +357,20 @@ body {
 
 .meta.is-error {
   color: #991b1b;
+}
+
+.source-summary {
+  margin: 0.15rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.item-list .source-summary li {
+  display: list-item;
+  flex-direction: row;
+  margin: 0.1rem 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .row-actions {

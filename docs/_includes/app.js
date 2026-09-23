@@ -80,7 +80,9 @@
       return empty;
     }
     try {
-      return JSON.parse(raw);
+      var state = JSON.parse(raw);
+      state.rules = (state.rules || []).map(mockNormalizeRule);
+      return state;
     } catch (error) {
       window.localStorage.removeItem(MOCK_KEY);
       return empty;
@@ -104,21 +106,58 @@
     };
   }
 
-  function mockPublicRule(item) {
+  function mockNormalizeSource(source, index, rule) {
     return {
-      id: item.id,
-      name: item.name,
-      spreadsheetId: item.spreadsheetId,
-      spreadsheetUrl: item.spreadsheetUrl,
-      sheetName: item.sheetName,
-      headerRow: 1,
-      destinationId: item.destinationId,
-      messageTemplate: item.messageTemplate,
-      enabled: !!item.enabled,
-      lastRow: item.lastRow,
-      lastCheckedAt: item.lastCheckedAt || "",
-      lastError: item.lastError || "",
+      id: source.id || rule.id + "-src-" + index,
+      label: String(source.label || "").trim(),
+      spreadsheetId: source.spreadsheetId || "",
+      spreadsheetUrl: source.spreadsheetUrl || "",
+      sheetName: source.sheetName || "",
+      lastRow: source.lastRow == null || source.lastRow === "" ? null : Number(source.lastRow),
+      lastCheckedAt: source.lastCheckedAt || "",
+      lastError: source.lastError || "",
     };
+  }
+
+  function mockNormalizeRule(rule) {
+    var sources;
+    if (Array.isArray(rule.sources) && rule.sources.length) {
+      sources = rule.sources.map(function (source, index) {
+        return mockNormalizeSource(source, index, rule);
+      });
+    } else if (rule.spreadsheetId || rule.spreadsheetUrl) {
+      sources = [
+        mockNormalizeSource(
+          {
+            label: rule.name || "",
+            spreadsheetId: rule.spreadsheetId,
+            spreadsheetUrl: rule.spreadsheetUrl,
+            sheetName: rule.sheetName,
+            lastRow: rule.lastRow,
+            lastCheckedAt: rule.lastCheckedAt || "",
+            lastError: rule.lastError || "",
+          },
+          0,
+          rule,
+        ),
+      ];
+    } else {
+      sources = [];
+    }
+    return {
+      id: rule.id,
+      name: rule.name,
+      destinationId: rule.destinationId,
+      messageTemplate: rule.messageTemplate || "",
+      enabled: !!rule.enabled,
+      sources: sources,
+      lastCheckedAt: rule.lastCheckedAt || "",
+      lastError: rule.lastError || "",
+    };
+  }
+
+  function mockPublicRule(item) {
+    return mockNormalizeRule(item);
   }
 
   function mockDescribe(url) {
@@ -146,6 +185,7 @@
       氏名: "山田 太郎",
       メール: "taro@example.com",
       _ruleName: (payload && payload.ruleName) || "プレビュー",
+      _sourceName: (payload && payload.sourceName) || "",
       _sheetName: (payload && payload.sheetName) || "Form Responses 1",
       _rowNumber: 4,
     };
@@ -158,7 +198,7 @@
   }
 
   function mockDefaultTemplate(headers) {
-    return ["*新しい回答*（{{_ruleName}}）"].concat(
+    return ["*新しい回答*（{{_sourceName}}）"].concat(
       headers.map(function (header) {
         return "• " + header + ": {{" + header + "}}";
       }),
@@ -249,27 +289,58 @@
       if (!ruleName) {
         throw new Error("ルール名を入力してください。");
       }
-      var meta = mockDescribe(payload.spreadsheetUrl);
       var destinationId = String((payload && payload.destinationId) || "");
       if (!state.destinations.some(function (item) { return item.id === destinationId; })) {
         throw new Error("Slack 宛先を選択してください。");
       }
+      var rawSources = payload && payload.sources;
+      if (!Array.isArray(rawSources) || !rawSources.length) {
+        throw new Error("監視対象のスプレッドシートを1件以上追加してください。");
+      }
+      if (rawSources.length > 20) {
+        throw new Error("監視対象は 20 件までです。");
+      }
       var currentRule = state.rules.filter(function (item) {
         return item.id === payload.id;
       })[0];
-      var sheetName = String((payload && payload.sheetName) || "Form Responses 1");
+      var seenSources = {};
+      var sources = rawSources.map(function (item, index) {
+        var label = String((item && item.label) || "").trim();
+        if (!label) {
+          throw new Error("監視対象 " + (index + 1) + " の名前を入力してください。");
+        }
+        var meta = mockDescribe(item && item.spreadsheetUrl);
+        var sheetName = String((item && item.sheetName) || "").trim();
+        if (!sheetName) {
+          throw new Error(label + ": シート名を選択してください。");
+        }
+        var key = meta.spreadsheetId + "\n" + sheetName;
+        if (seenSources[key]) {
+          throw new Error(label + ": 同じスプレッドシートの同じシートが重複しています。");
+        }
+        seenSources[key] = true;
+        var previous = currentRule && item.id
+          ? currentRule.sources.filter(function (source) { return source.id === item.id; })[0]
+          : null;
+        var sameTarget = previous && previous.spreadsheetId === meta.spreadsheetId && previous.sheetName === sheetName;
+        return {
+          id: previous ? previous.id : mockId(),
+          label: label,
+          spreadsheetId: meta.spreadsheetId,
+          spreadsheetUrl: String(item.spreadsheetUrl || "").trim(),
+          sheetName: sheetName,
+          lastRow: sameTarget ? previous.lastRow : 4,
+          lastCheckedAt: sameTarget ? previous.lastCheckedAt || "" : "",
+          lastError: "",
+        };
+      });
       var rule = {
         id: currentRule ? currentRule.id : mockId(),
         name: ruleName,
-        spreadsheetId: meta.spreadsheetId,
-        spreadsheetUrl: payload.spreadsheetUrl,
-        sheetName: sheetName,
         destinationId: destinationId,
         messageTemplate: String((payload && payload.messageTemplate) || mockDefaultTemplate(["Timestamp", "氏名", "メール"])),
         enabled: !(payload && payload.enabled === false),
-        lastRow: currentRule && currentRule.spreadsheetId === meta.spreadsheetId && currentRule.sheetName === sheetName
-          ? currentRule.lastRow
-          : 4,
+        sources: sources,
         lastCheckedAt: currentRule ? currentRule.lastCheckedAt : "",
         lastError: "",
       };
@@ -293,11 +364,18 @@
       if (!markRule) {
         throw new Error("ルールが見つかりません。");
       }
-      var meta = mockDescribe(markRule.spreadsheetUrl);
-      var sheet = meta.sheets.filter(function (item) {
-        return item.name === markRule.sheetName;
-      })[0] || meta.sheets[0];
-      markRule.lastRow = sheet ? sheet.lastRow : 0;
+      if (!markRule.sources.length) {
+        throw new Error("監視対象のスプレッドシートがありません。");
+      }
+      markRule.sources.forEach(function (source) {
+        var meta = mockDescribe(source.spreadsheetUrl);
+        var sheet = meta.sheets.filter(function (item) {
+          return item.name === source.sheetName;
+        })[0] || meta.sheets[0];
+        source.lastRow = sheet ? sheet.lastRow : 0;
+        source.lastCheckedAt = new Date().toISOString();
+        source.lastError = "";
+      });
       markRule.lastCheckedAt = new Date().toISOString();
       markRule.lastError = "";
       mockSave(state);
@@ -310,15 +388,20 @@
       if (!testRule) {
         throw new Error("ルールが見つかりません。");
       }
-      state.logs.unshift({
-        at: new Date().toISOString(),
-        ok: true,
-        ruleId: testRule.id,
-        ruleName: testRule.name,
-        detail: "テスト通知を送信しました。（ローカルモック）",
+      if (!testRule.sources.length) {
+        throw new Error("監視対象のスプレッドシートがありません。");
+      }
+      testRule.sources.forEach(function (source) {
+        state.logs.unshift({
+          at: new Date().toISOString(),
+          ok: true,
+          ruleId: testRule.id,
+          ruleName: testRule.name + " / " + source.label,
+          detail: source.label + " のテスト通知を送信しました。（ローカルモック）",
+        });
       });
       mockSave(state);
-      return { ok: true };
+      return { ok: true, sent: testRule.sources.length };
     }
     if (name === "apiGetTrigger") {
       return mockRun("apiGetBootstrap", []).trigger;
@@ -331,17 +414,20 @@
     }
     if (name === "apiCheckNow") {
       var enabledRules = state.rules.filter(function (rule) { return rule.enabled; });
+      var checkedSources = enabledRules.reduce(function (count, rule) {
+        return count + ((rule.sources && rule.sources.length) || 0);
+      }, 0);
       state.logs.unshift({
         at: new Date().toISOString(),
         ok: true,
         ruleId: "",
         ruleName: "",
-        detail: enabledRules.length
+        detail: checkedSources
           ? "手動チェック: 新規回答はありませんでした。（ローカルモック）"
           : "手動チェック: 有効なルールがありません。",
       });
       mockSave(state);
-      return { ok: true, checked: enabledRules.length, notified: 0, errors: [], manual: true };
+      return { ok: true, checked: checkedSources, notified: 0, errors: [], manual: true };
     }
     if (name === "apiListLogs") {
       return state.logs;
@@ -407,9 +493,21 @@
       });
       ruleList.innerHTML = '<ul class="item-list">' + bootstrap.rules.map(function (item) {
         var status = item.enabled ? "有効" : "停止";
-        var error = item.lastError ? '<span class="meta is-error">' + escapeHtml(item.lastError) + "</span>" : "";
+        var sources = item.sources || [];
+        var sourceHtml = sources.length
+          ? '<ul class="source-summary">' + sources.map(function (source) {
+              var error = source.lastError ? '<span class="meta is-error">' + escapeHtml(source.lastError) + "</span>" : "";
+              var row = source.lastRow == null ? "-" : source.lastRow;
+              return '<li title="' + escapeHtml(source.spreadsheetUrl || "") + '"><span>' +
+                escapeHtml(source.label || "（名前なし）") + " → " + escapeHtml(source.sheetName || "（シート未設定）") +
+                "（最終行 " + escapeHtml(row) + "）</span>" + error + "</li>";
+            }).join("") + "</ul>"
+          : '<span class="meta">監視対象なし</span>';
+        var sourceHasError = sources.some(function (source) { return source.lastError; });
+        var error = !sourceHasError && item.lastError ? '<span class="meta is-error">' + escapeHtml(item.lastError) + "</span>" : "";
         return '<li><div><strong>' + escapeHtml(item.name) + "</strong>" +
-          '<span class="meta">' + escapeHtml(status) + " / " + escapeHtml(destNames[item.destinationId] || "宛先なし") + " / 最終行 " + escapeHtml(item.lastRow == null ? "-" : item.lastRow) + "</span>" +
+          '<span class="meta">' + escapeHtml(status) + " / " + escapeHtml(destNames[item.destinationId] || "宛先なし") + " / 監視対象 " + escapeHtml(sources.length) + " 件</span>" +
+          sourceHtml +
           '<span class="meta">最終チェック: ' + escapeHtml(formatTime(item.lastCheckedAt)) + "</span>" + error +
           "</div><div class='row-actions'>" +
           '<button type="button" class="btn" data-edit-rule="' + escapeHtml(item.id) + '">編集</button>' +
@@ -420,16 +518,98 @@
       }).join("") + "</ul>";
     }
 
-    function fillSheetSelect(sheets, selected) {
-      var list = root.querySelector("#sheet-options");
+    var sourceFieldSeq = 0;
+
+    function renderSourceFields(sources) {
+      var items = sources && sources.length ? sources : [{}];
+      var container = root.querySelector("[data-source-fields]");
+      container.innerHTML = items.map(sourceCardHtml).join("");
+      updateSourceCards();
+    }
+
+    function sourceCardHtml(source) {
+      sourceFieldSeq += 1;
+      var listId = "sheet-options-" + sourceFieldSeq;
+      var sheetName = (source && source.sheetName) || "";
+      var option = sheetName ? '<option value="' + escapeHtml(sheetName) + '"></option>' : "";
+      return '<div class="source-card" data-source-card>' +
+        '<div class="source-card-head"><strong data-source-title>監視対象</strong>' +
+        '<button type="button" class="btn" data-action="remove-source">外す</button></div>' +
+        '<input type="hidden" data-source-id value="' + escapeHtml((source && source.id) || "") + '" />' +
+        '<label class="field"><span>名前</span>' +
+        '<input data-source-label required placeholder="問い合わせフォームA" value="' + escapeHtml((source && source.label) || "") + '" /></label>' +
+        '<label class="field"><span>スプレッドシートの URL または ID</span>' +
+        '<input data-source-url required placeholder="https://docs.google.com/spreadsheets/d/..." value="' + escapeHtml((source && source.spreadsheetUrl) || "") + '" /></label>' +
+        '<div class="actions"><button type="button" class="btn" data-action="load-sheets">シート一覧を読み込む</button></div>' +
+        '<label class="field"><span>シート</span>' +
+        '<input data-source-sheet list="' + listId + '" required placeholder="フォームの回答 1" value="' + escapeHtml(sheetName) + '" />' +
+        '<datalist id="' + listId + '" data-sheet-options>' + option + "</datalist></label>" +
+        "</div>";
+    }
+
+    function updateSourceCards() {
+      var cards = root.querySelectorAll("[data-source-card]");
+      Array.prototype.forEach.call(cards, function (card, index) {
+        card.querySelector("[data-source-title]").textContent = "監視対象 " + (index + 1);
+        card.querySelector("[data-action='remove-source']").hidden = cards.length < 2;
+      });
+    }
+
+    function fillSheetOptions(card, sheets, selected) {
+      var list = card.querySelector("[data-sheet-options]");
       list.innerHTML = (sheets || []).map(function (sheet) {
         var name = sheet.name || sheet;
         return '<option value="' + escapeHtml(name) + '"></option>';
       }).join("");
+      var input = card.querySelector("[data-source-sheet]");
       if (selected) {
-        ruleForm.sheetName.value = selected;
+        input.value = selected;
+      } else if (!input.value && sheets && sheets[0]) {
+        input.value = sheets[0].name || sheets[0];
       }
     }
+
+    function collectSources() {
+      return Array.prototype.map.call(root.querySelectorAll("[data-source-card]"), function (card) {
+        return {
+          id: card.querySelector("[data-source-id]").value,
+          label: card.querySelector("[data-source-label]").value.trim(),
+          spreadsheetUrl: card.querySelector("[data-source-url]").value.trim(),
+          sheetName: card.querySelector("[data-source-sheet]").value.trim(),
+        };
+      });
+    }
+
+    function sourceValidationError(sources) {
+      if (!sources.length) {
+        return "監視対象のスプレッドシートを1件以上追加してください。";
+      }
+      if (sources.length > 20) {
+        return "監視対象は 20 件までです。";
+      }
+      var seen = {};
+      for (var i = 0; i < sources.length; i++) {
+        var source = sources[i];
+        if (!source.label || !source.spreadsheetUrl || !source.sheetName) {
+          return "監視対象の名前、スプレッドシート、シートをすべて入力してください。";
+        }
+        var key = source.spreadsheetUrl + "\n" + source.sheetName;
+        if (seen[key]) {
+          return "同じスプレッドシートの同じシートが重複しています。";
+        }
+        seen[key] = true;
+      }
+      return "";
+    }
+
+    function resetRuleForm() {
+      ruleForm.reset();
+      ruleForm.enabled.checked = true;
+      renderSourceFields([]);
+      preview.hidden = true;
+    }
+
+    renderSourceFields([]);
 
     destForm.addEventListener("submit", function (event) {
       event.preventDefault();
@@ -454,20 +634,23 @@
     ruleForm.addEventListener("submit", function (event) {
       event.preventDefault();
       showStatus(root, "", false);
+      var sources = collectSources();
+      var validationError = sourceValidationError(sources);
+      if (validationError) {
+        showStatus(root, validationError, true);
+        return;
+      }
       setDisabled(root, true);
       gasRun("apiSaveRule", {
         id: ruleForm.id.value,
         name: ruleForm.name.value,
         destinationId: ruleForm.destinationId.value,
-        spreadsheetUrl: ruleForm.spreadsheetUrl.value,
-        sheetName: ruleForm.sheetName.value,
+        sources: sources,
         messageTemplate: ruleForm.messageTemplate.value,
         enabled: ruleForm.enabled.checked,
       }).then(function () {
-        ruleForm.reset();
-        ruleForm.enabled.checked = true;
-        preview.hidden = true;
-        showStatus(root, "ルールを保存しました。既存行は既読です。", false);
+        resetRuleForm();
+        showStatus(root, "ルールを保存しました。新しく追加した監視対象の既存行は既読です。", false);
         return refresh();
       }).catch(function (error) {
         showStatus(root, errorMessage(error), true);
@@ -488,16 +671,31 @@
         return;
       }
       if (action === "reset-rule") {
-        ruleForm.reset();
-        ruleForm.enabled.checked = true;
-        preview.hidden = true;
+        resetRuleForm();
+        return;
+      }
+      if (action === "add-source") {
+        root.querySelector("[data-source-fields]").insertAdjacentHTML("beforeend", sourceCardHtml({}));
+        updateSourceCards();
+        return;
+      }
+      if (action === "remove-source") {
+        if (root.querySelectorAll("[data-source-card]").length < 2) {
+          return;
+        }
+        button.closest("[data-source-card]").remove();
+        updateSourceCards();
         return;
       }
       if (action === "load-sheets") {
+        var loadCard = button.closest("[data-source-card]");
+        if (!loadCard) {
+          return;
+        }
         showStatus(root, "", false);
         setDisabled(root, true);
-        gasRun("apiDescribeSpreadsheet", ruleForm.spreadsheetUrl.value).then(function (meta) {
-          fillSheetSelect(meta.sheets, ruleForm.sheetName.value);
+        gasRun("apiDescribeSpreadsheet", loadCard.querySelector("[data-source-url]").value).then(function (meta) {
+          fillSheetOptions(loadCard, meta.sheets, loadCard.querySelector("[data-source-sheet]").value);
           showStatus(root, "シート一覧を読み込みました（" + meta.title + "）。", false);
         }).catch(function (error) {
           showStatus(root, errorMessage(error), true);
@@ -507,13 +705,19 @@
         return;
       }
       if (action === "fill-template" || action === "preview-template") {
+        var previewSource = collectSources()[0] || {};
+        if (!previewSource.spreadsheetUrl || !previewSource.sheetName) {
+          showStatus(root, "先頭の監視対象にスプレッドシートとシートを入力してください。", true);
+          return;
+        }
         showStatus(root, "", false);
         setDisabled(root, true);
         gasRun("apiPreviewTemplate", {
-          spreadsheetUrl: ruleForm.spreadsheetUrl.value,
-          sheetName: ruleForm.sheetName.value,
+          spreadsheetUrl: previewSource.spreadsheetUrl,
+          sheetName: previewSource.sheetName,
           messageTemplate: ruleForm.messageTemplate.value,
           ruleName: ruleForm.name.value || "プレビュー",
+          sourceName: previewSource.label,
         }).then(function (result) {
           if (action === "fill-template" || !ruleForm.messageTemplate.value.trim()) {
             ruleForm.messageTemplate.value = result.suggestedTemplate;
@@ -565,22 +769,29 @@
         }
         ruleForm.id.value = rule.id;
         ruleForm.name.value = rule.name;
-        ruleForm.spreadsheetUrl.value = rule.spreadsheetUrl;
-        fillSheetSelect([{ name: rule.sheetName }], rule.sheetName);
         ruleForm.destinationId.value = rule.destinationId;
         ruleForm.messageTemplate.value = rule.messageTemplate;
         ruleForm.enabled.checked = !!rule.enabled;
-        gasRun("apiDescribeSpreadsheet", rule.spreadsheetUrl).then(function (meta) {
-          fillSheetSelect(meta.sheets, rule.sheetName);
-        }).catch(function () {});
+        renderSourceFields(rule.sources);
+        Array.prototype.forEach.call(root.querySelectorAll("[data-source-card]"), function (card) {
+          var selectedSheet = card.querySelector("[data-source-sheet]").value;
+          gasRun("apiDescribeSpreadsheet", card.querySelector("[data-source-url]").value).then(function (meta) {
+            fillSheetOptions(card, meta.sheets, selectedSheet);
+          }).catch(function () {});
+        });
         ruleForm.name.focus();
         return;
       }
       var testRule = button.getAttribute("data-test-rule");
       if (testRule) {
+        var testTarget = bootstrap.rules.filter(function (item) { return item.id === testRule; })[0];
+        var testCount = testTarget && testTarget.sources ? testTarget.sources.length : 0;
+        if (testCount > 1 && !window.confirm("監視対象 " + testCount + " 件へテスト通知を送ります。")) {
+          return;
+        }
         setDisabled(root, true);
-        gasRun("apiTestNotify", testRule).then(function () {
-          showStatus(root, "テスト通知を送りました。", false);
+        gasRun("apiTestNotify", testRule).then(function (result) {
+          showStatus(root, result && result.sent > 1 ? "テスト通知を " + result.sent + " 件送りました。" : "テスト通知を送りました。", false);
         }).catch(function (error) {
           showStatus(root, errorMessage(error), true);
         }).then(function () {

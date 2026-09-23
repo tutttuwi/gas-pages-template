@@ -16,18 +16,28 @@ function apiPublicDestination_(destination) {
   };
 }
 
+function apiPublicSource_(source) {
+  return {
+    id: source.id,
+    label: source.label || "",
+    spreadsheetId: source.spreadsheetId,
+    spreadsheetUrl: source.spreadsheetUrl,
+    sheetName: source.sheetName,
+    headerRow: source.headerRow || 1,
+    lastRow: source.lastRow == null ? null : Number(source.lastRow),
+    lastCheckedAt: source.lastCheckedAt || "",
+    lastError: source.lastError || "",
+  };
+}
+
 function apiPublicRule_(rule) {
   return {
     id: rule.id,
     name: rule.name,
-    spreadsheetId: rule.spreadsheetId,
-    spreadsheetUrl: rule.spreadsheetUrl,
-    sheetName: rule.sheetName,
-    headerRow: rule.headerRow || 1,
     destinationId: rule.destinationId,
     messageTemplate: rule.messageTemplate || "",
     enabled: !!rule.enabled,
-    lastRow: rule.lastRow == null ? null : Number(rule.lastRow),
+    sources: (rule.sources || []).map(apiPublicSource_),
     lastCheckedAt: rule.lastCheckedAt || "",
     lastError: rule.lastError || "",
   };
@@ -54,6 +64,7 @@ function apiPreviewTemplate(payload) {
       });
   var fields = sheetsRowToFields(headers, sampleRow, {
     _ruleName: (payload && payload.ruleName) || "プレビュー",
+    _sourceName: (payload && payload.sourceName) || "",
     _sheetName: sheet.getName(),
     _rowNumber: Math.max(lastRow, headerRow + 1),
   });
@@ -112,16 +123,54 @@ function apiDeleteDestination(id) {
   });
 }
 
+function apiPrepareSources_(rawSources) {
+  if (!Array.isArray(rawSources) || !rawSources.length) {
+    throw new Error("監視対象のスプレッドシートを1件以上追加してください。");
+  }
+  if (rawSources.length > 20) {
+    throw new Error("監視対象は 20 件までです。");
+  }
+  var seen = {};
+  return rawSources.map(function (item, index) {
+    var label = String((item && item.label) || "").trim();
+    if (!label) {
+      throw new Error("監視対象 " + (index + 1) + " の名前を入力してください。");
+    }
+    var spreadsheetUrl = String((item && item.spreadsheetUrl) || "").trim();
+    var meta;
+    var sheet;
+    try {
+      meta = sheetsDescribe(spreadsheetUrl);
+      var sheetName = String((item && item.sheetName) || (meta.sheets[0] && meta.sheets[0].name) || "").trim();
+      if (!sheetName) {
+        throw new Error("シート名を選択してください。");
+      }
+      sheet = sheetsGetSheet(meta.spreadsheetId, sheetName);
+    } catch (e) {
+      throw new Error(label + ": " + (e.message || e));
+    }
+    var key = meta.spreadsheetId + "\n" + sheet.getName();
+    if (seen[key]) {
+      throw new Error(label + ": 同じスプレッドシートの同じシートが重複しています。");
+    }
+    seen[key] = true;
+    return {
+      id: String((item && item.id) || "").trim(),
+      label: label,
+      spreadsheetId: meta.spreadsheetId,
+      spreadsheetUrl: spreadsheetUrl,
+      sheetName: sheet.getName(),
+      headerRow: 1,
+      snapshotRow: sheet.getLastRow(),
+      headers: sheetsHeaders(sheet, 1, Math.max(sheet.getLastColumn(), 1)),
+    };
+  });
+}
+
 function apiSaveRule(payload) {
   var name = String((payload && payload.name) || "").trim();
   if (!name) {
     throw new Error("ルール名を入力してください。");
-  }
-  var spreadsheetUrl = String((payload && payload.spreadsheetUrl) || "").trim();
-  var meta = sheetsDescribe(spreadsheetUrl);
-  var sheetName = String((payload && payload.sheetName) || (meta.sheets[0] && meta.sheets[0].name) || "").trim();
-  if (!sheetName) {
-    throw new Error("シート名を選択してください。");
   }
   var destinationId = String((payload && payload.destinationId) || "").trim();
   if (!storeGetDestinations().some(function (item) {
@@ -129,15 +178,13 @@ function apiSaveRule(payload) {
   })) {
     throw new Error("Slack 宛先を選択してください。");
   }
-
-  var sheet = sheetsGetSheet(meta.spreadsheetId, sheetName);
-  var snapshotRow = sheet.getLastRow();
+  var prepared = apiPrepareSources_(payload && payload.sources);
   var template = String((payload && payload.messageTemplate) || "").trim();
   if (template.length > 4000) {
     throw new Error("通知メッセージは 4000 文字以内にしてください。");
   }
   if (!template) {
-    template = sheetsDefaultTemplate(sheetsHeaders(sheet, 1, Math.max(sheet.getLastColumn(), 1)));
+    template = sheetsDefaultTemplate(prepared[0].headers);
   }
   return withScriptLock_(function () {
     var lockedRules = storeGetRules();
@@ -152,19 +199,34 @@ function apiSaveRule(payload) {
     if (!lockedDestination) {
       throw new Error("Slack 宛先を選択してください。");
     }
+    var previousSources = (lockedCurrent && lockedCurrent.sources) || [];
     var rule = {
       id: lockedCurrent ? lockedCurrent.id : storeNewId_(),
       name: name,
-      spreadsheetId: meta.spreadsheetId,
-      spreadsheetUrl: spreadsheetUrl,
-      sheetName: sheetName,
-      headerRow: 1,
       destinationId: destinationId,
       messageTemplate: template,
       enabled: payload && payload.enabled === false ? false : true,
-      lastRow: lockedCurrent && lockedCurrent.spreadsheetId === meta.spreadsheetId && lockedCurrent.sheetName === sheetName
-        ? lockedCurrent.lastRow
-        : snapshotRow,
+      sources: prepared.map(function (item) {
+        var previous = item.id
+          ? previousSources.filter(function (source) {
+              return source.id === item.id;
+            })[0]
+          : null;
+        var sameTarget = previous
+          && previous.spreadsheetId === item.spreadsheetId
+          && previous.sheetName === item.sheetName;
+        return {
+          id: previous ? previous.id : storeNewId_(),
+          label: item.label,
+          spreadsheetId: item.spreadsheetId,
+          spreadsheetUrl: item.spreadsheetUrl,
+          sheetName: item.sheetName,
+          headerRow: 1,
+          lastRow: sameTarget ? previous.lastRow : item.snapshotRow,
+          lastCheckedAt: sameTarget ? previous.lastCheckedAt || "" : "",
+          lastError: "",
+        };
+      }),
       lastCheckedAt: lockedCurrent ? lockedCurrent.lastCheckedAt : "",
       lastError: "",
     };
@@ -193,8 +255,19 @@ function apiMarkRead(id) {
     if (!rule) {
       throw new Error("ルールが見つかりません。");
     }
-    var sheet = sheetsGetSheet(rule.spreadsheetId, rule.sheetName);
-    rule.lastRow = sheet.getLastRow();
+    if (!rule.sources || !rule.sources.length) {
+      throw new Error("監視対象のスプレッドシートがありません。");
+    }
+    rule.sources.forEach(function (source) {
+      try {
+        var sheet = sheetsGetSheet(source.spreadsheetId, source.sheetName);
+        source.lastRow = sheet.getLastRow();
+        source.lastError = "";
+        source.lastCheckedAt = new Date().toISOString();
+      } catch (e) {
+        throw new Error((source.label || source.sheetName) + ": " + (e.message || e));
+      }
+    });
     rule.lastError = "";
     rule.lastCheckedAt = new Date().toISOString();
     storeSaveRules(rules);
@@ -215,20 +288,26 @@ function apiTestNotify(id) {
   if (!destination) {
     throw new Error("Slack 宛先が見つかりません。");
   }
-  var preview = apiPreviewTemplate({
-    spreadsheetUrl: rule.spreadsheetUrl,
-    sheetName: rule.sheetName,
-    messageTemplate: rule.messageTemplate,
-    ruleName: rule.name + "（テスト）",
+  if (!rule.sources || !rule.sources.length) {
+    throw new Error("監視対象のスプレッドシートがありません。");
+  }
+  rule.sources.forEach(function (source) {
+    var preview = apiPreviewTemplate({
+      spreadsheetUrl: source.spreadsheetUrl,
+      sheetName: source.sheetName,
+      messageTemplate: rule.messageTemplate,
+      ruleName: rule.name + "（テスト）",
+      sourceName: source.label,
+    });
+    slackSend(destination.url, "【テスト通知】\n" + preview.preview);
+    storeAddLog({
+      ok: true,
+      ruleId: rule.id,
+      ruleName: rule.name + " / " + source.label,
+      detail: source.label + " のテスト通知を送信しました。",
+    });
   });
-  slackSend(destination.url, "【テスト通知】\n" + preview.preview);
-  storeAddLog({
-    ok: true,
-    ruleId: rule.id,
-    ruleName: rule.name,
-    detail: "テスト通知を送信しました。",
-  });
-  return { ok: true };
+  return { ok: true, sent: rule.sources.length };
 }
 
 function apiGetTrigger() {

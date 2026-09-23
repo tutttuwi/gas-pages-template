@@ -35,8 +35,60 @@ function storeSaveDestinations(destinations) {
   storeSetJson_(STORE_KEYS_.destinations, destinations);
 }
 
+function storeNormalizeSource_(source, index, rule) {
+  return {
+    id: source.id || rule.id + "-src-" + index,
+    label: String(source.label || "").trim(),
+    spreadsheetId: source.spreadsheetId || "",
+    spreadsheetUrl: source.spreadsheetUrl || "",
+    sheetName: source.sheetName || "",
+    headerRow: source.headerRow || 1,
+    lastRow: source.lastRow == null || source.lastRow === "" ? null : Number(source.lastRow),
+    lastCheckedAt: source.lastCheckedAt || "",
+    lastError: source.lastError || "",
+  };
+}
+
+function storeNormalizeRule_(rule) {
+  var sources;
+  if (Array.isArray(rule.sources) && rule.sources.length) {
+    sources = rule.sources.map(function (source, index) {
+      return storeNormalizeSource_(source, index, rule);
+    });
+  } else if (rule.spreadsheetId || rule.spreadsheetUrl) {
+    sources = [
+      storeNormalizeSource_(
+        {
+          label: rule.name || "",
+          spreadsheetId: rule.spreadsheetId,
+          spreadsheetUrl: rule.spreadsheetUrl,
+          sheetName: rule.sheetName,
+          headerRow: rule.headerRow || 1,
+          lastRow: rule.lastRow,
+          lastCheckedAt: rule.lastCheckedAt || "",
+          lastError: rule.lastError || "",
+        },
+        0,
+        rule,
+      ),
+    ];
+  } else {
+    sources = [];
+  }
+  return {
+    id: rule.id,
+    name: rule.name,
+    destinationId: rule.destinationId,
+    messageTemplate: rule.messageTemplate || "",
+    enabled: !!rule.enabled,
+    sources: sources,
+    lastCheckedAt: rule.lastCheckedAt || "",
+    lastError: rule.lastError || "",
+  };
+}
+
 function storeGetRules() {
-  return storeGetJson_(STORE_KEYS_.rules, []);
+  return storeGetJson_(STORE_KEYS_.rules, []).map(storeNormalizeRule_);
 }
 
 function storeSaveRules(rules) {

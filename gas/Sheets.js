@@ -87,7 +87,7 @@ function sheetsRowToFields(headers, row, extras) {
 }
 
 function sheetsDefaultTemplate(headers) {
-  var lines = ["*新しい回答*（{{_ruleName}}）"];
+  var lines = ["*新しい回答*（{{_sourceName}}）"];
   (headers || []).forEach(function (header) {
     lines.push("• " + header + ": {{" + header + "}}");
   });

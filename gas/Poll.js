@@ -20,22 +20,62 @@ function pollRunAll_(manual) {
       if (!rule.enabled) {
         return;
       }
-      checked += 1;
-      try {
-        notified += pollProcessRule_(rule, destinations[rule.destinationId], rules);
-      } catch (e) {
-        var message = String(e.message || e);
-        rule.lastError = message;
+      var destination = destinations[rule.destinationId];
+      var sources = rule.sources || [];
+      if (!destination || !destination.url) {
+        checked += 1;
+        var missingDestination = "Slack 宛先が見つかりません。";
+        rule.lastError = missingDestination;
         rule.lastCheckedAt = new Date().toISOString();
         storeSaveRules(rules);
         storeAddLog({
           ok: false,
           ruleId: rule.id,
           ruleName: rule.name,
-          detail: message,
+          detail: missingDestination,
         });
-        errors.push(rule.name + ": " + message);
+        errors.push(rule.name + ": " + missingDestination);
+        return;
       }
+      if (!sources.length) {
+        checked += 1;
+        var missingSources = "監視対象のスプレッドシートがありません。";
+        rule.lastError = missingSources;
+        rule.lastCheckedAt = new Date().toISOString();
+        storeSaveRules(rules);
+        storeAddLog({
+          ok: false,
+          ruleId: rule.id,
+          ruleName: rule.name,
+          detail: missingSources,
+        });
+        errors.push(rule.name + ": " + missingSources);
+        return;
+      }
+      var sourceErrors = [];
+      sources.forEach(function (source) {
+        checked += 1;
+        try {
+          notified += pollProcessSource_(rule, source, destination, rules);
+        } catch (e) {
+          var message = String(e.message || e);
+          var label = source.label || source.sheetName || rule.name;
+          source.lastError = message;
+          source.lastCheckedAt = new Date().toISOString();
+          storeSaveRules(rules);
+          storeAddLog({
+            ok: false,
+            ruleId: rule.id,
+            ruleName: rule.name + " / " + label,
+            detail: message,
+          });
+          sourceErrors.push(label + ": " + message);
+          errors.push(rule.name + " / " + label + ": " + message);
+        }
+      });
+      rule.lastError = sourceErrors.join(" / ");
+      rule.lastCheckedAt = new Date().toISOString();
+      storeSaveRules(rules);
     });
     return {
       ok: errors.length === 0,
@@ -49,28 +89,26 @@ function pollRunAll_(manual) {
   }
 }
 
-function pollProcessRule_(rule, destination, rules) {
-  if (!destination || !destination.url) {
-    throw new Error("Slack 宛先が見つかりません。");
-  }
-  var sheet = sheetsGetSheet(rule.spreadsheetId, rule.sheetName);
-  var headerRow = rule.headerRow || 1;
+function pollProcessSource_(rule, source, destination, rules) {
+  var sheet = sheetsGetSheet(source.spreadsheetId, source.sheetName);
+  var headerRow = source.headerRow || 1;
   var lastRow = sheet.getLastRow();
   var lastColumn = Math.max(sheet.getLastColumn(), 1);
-  rule.lastCheckedAt = new Date().toISOString();
-  rule.lastError = "";
+  var label = source.label || source.sheetName || rule.name;
+  source.lastCheckedAt = new Date().toISOString();
+  source.lastError = "";
 
   // カーソル欠落時は履歴を流さず、現在の最終行を既読にする。
-  if (rule.lastRow == null || isNaN(Number(rule.lastRow))) {
-    rule.lastRow = lastRow;
+  if (source.lastRow == null || isNaN(Number(source.lastRow))) {
+    source.lastRow = lastRow;
     storeSaveRules(rules);
     return 0;
   }
 
-  var cursor = Number(rule.lastRow);
+  var cursor = Number(source.lastRow);
   if (lastRow <= cursor) {
     if (lastRow < cursor) {
-      rule.lastRow = lastRow;
+      source.lastRow = lastRow;
     }
     storeSaveRules(rules);
     return 0;
@@ -78,7 +116,7 @@ function pollProcessRule_(rule, destination, rules) {
 
   var start = Math.max(cursor + 1, headerRow + 1);
   if (start > lastRow) {
-    rule.lastRow = lastRow;
+    source.lastRow = lastRow;
     storeSaveRules(rules);
     return 0;
   }
@@ -90,11 +128,12 @@ function pollProcessRule_(rule, destination, rules) {
     var rowNumber = start + i;
     var fields = sheetsRowToFields(headers, values[i], {
       _ruleName: rule.name,
+      _sourceName: source.label,
       _sheetName: sheet.getName(),
       _rowNumber: rowNumber,
     });
     slackSend(destination.url, slackRender(rule.messageTemplate, fields));
-    rule.lastRow = rowNumber;
+    source.lastRow = rowNumber;
     // 再読込せずメモリ上の rules を書く。送信成功後に進めるので、中断時は at-least-once。
     storeSaveRules(rules);
     sent += 1;
@@ -103,8 +142,8 @@ function pollProcessRule_(rule, destination, rules) {
     storeAddLog({
       ok: true,
       ruleId: rule.id,
-      ruleName: rule.name,
-      detail: sent + " 件を通知しました（行 " + start + "–" + rule.lastRow + "）。",
+      ruleName: rule.name + " / " + label,
+      detail: sent + " 件を通知しました（" + label + " / " + sheet.getName() + "、行 " + start + "–" + source.lastRow + "）。",
     });
   }
   return sent;

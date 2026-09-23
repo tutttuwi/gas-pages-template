@@ -34,7 +34,7 @@ order: 2
 
 <section class="panel">
   <h2>監視ルール</h2>
-  <p class="lede">回答先スプレッドシートの新しい行を検知して、選んだ Slack 宛先へ送ります。登録時点の最終行までは既読になります。</p>
+  <p class="lede">回答先スプレッドシートを複数登録できます。問い合わせフォームが増えたら監視対象を追加すると、そのシートの新しい行も同じ Slack 宛先へ送ります。追加した時点の最終行までは既読になります。</p>
   <div data-rule-list></div>
   <form class="stack" data-rule-form>
     <input type="hidden" name="id" />
@@ -48,29 +48,23 @@ order: 2
         <select name="destinationId" required></select>
       </label>
     </div>
-    <label class="field">
-      <span>スプレッドシートの URL または ID</span>
-      <input name="spreadsheetUrl" required placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <div class="source-editor">
+      <div class="source-editor-head">
+        <span>監視対象のスプレッドシート</span>
+        <button type="button" class="btn" data-action="add-source">追加</button>
+      </div>
+      <p class="hint">問い合わせフォームA → シートA、のように名前と回答先を並べます。フォームが増えたら「追加」して保存してください。</p>
+      <div class="source-list" data-source-fields></div>
+    </div>
+    <label class="field checkbox solo">
+      <input name="enabled" type="checkbox" checked />
+      <span>このルールを有効にする</span>
     </label>
-    <div class="actions">
-      <button type="button" class="btn" data-action="load-sheets">シート一覧を読み込む</button>
-    </div>
-    <div class="grid">
-      <label class="field">
-        <span>シート</span>
-        <input name="sheetName" list="sheet-options" required placeholder="Form Responses 1" />
-        <datalist id="sheet-options"></datalist>
-      </label>
-      <label class="field checkbox">
-        <input name="enabled" type="checkbox" checked />
-        <span>このルールを有効にする</span>
-      </label>
-    </div>
     <label class="field">
       <span>通知メッセージ</span>
-      <textarea name="messageTemplate" rows="8" placeholder="*新しい回答*（{{_ruleName}}）&#10;• 氏名: {{氏名}}"></textarea>
+      <textarea name="messageTemplate" rows="8" placeholder="*新しい回答*（{{_sourceName}}）&#10;• 氏名: {{氏名}}"></textarea>
     </label>
-    <p class="hint">列名は <code>{{列名}}</code> で埋め込めます。ほかに <code>{{_ruleName}}</code> <code>{{_sheetName}}</code> <code>{{_rowNumber}}</code> が使えます。空欄で保存すると、列名から雛形を作ります。</p>
+    <p class="hint">列名は <code>{{列名}}</code> で埋め込めます。ほかに <code>{{_sourceName}}</code> <code>{{_ruleName}}</code> <code>{{_sheetName}}</code> <code>{{_rowNumber}}</code> が使えます。空欄で保存すると、先頭の監視対象の列名から雛形を作ります。フォームごとに列が違うときは、共通の列名だけを書いてください。</p>
     <div class="actions">
       <button type="button" class="btn" data-action="fill-template">ヘッダーから雛形を作る</button>
       <button type="button" class="btn" data-action="preview-template">プレビュー</button>
