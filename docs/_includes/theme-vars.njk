@@ -11,21 +11,48 @@
   --inline-code-bg: {{ tokens.inlineCodeBg }};
 {% endmacro %}
 
+{% macro chrome(mode) %}
+{% if mode == "dark" %}
+  --surface: #292524;
+  --border: #44403c;
+  --notice-bg: #042f2e;
+  --notice-text: #99f6e4;
+  --status-bg: #292524;
+  --error-bg: #450a0a;
+  --error-text: #fecaca;
+  --on-accent: #042f2e;
+  --elev-shadow: 0 0 0 1px #44403c, 0 1px 2px rgba(0, 0, 0, 0.45);
+{% else %}
+  --surface: #ffffff;
+  --border: #d6d3d1;
+  --notice-bg: #ecfdf5;
+  --notice-text: #115e59;
+  --status-bg: #e7e5e4;
+  --error-bg: #fef2f2;
+  --error-text: #991b1b;
+  --on-accent: #ffffff;
+  --elev-shadow: 0 1px 2px rgba(28, 25, 23, 0.06);
+{% endif %}
+{% endmacro %}
+
 :root,
 [data-theme="system"],
 [data-theme="light"] {
   color-scheme: light;
   {{ palette(site.theme.light) | safe }}
+  {{ chrome("light") | safe }}
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
   {{ palette(site.theme.dark) | safe }}
+  {{ chrome("dark") | safe }}
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="system"] {
     color-scheme: dark;
     {{ palette(site.theme.dark) | safe }}
+    {{ chrome("dark") | safe }}
   }
 }
