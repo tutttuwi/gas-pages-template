@@ -65,7 +65,11 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.ignores.add("docs/README.md");
   eleventyConfig.ignores.add("docs/_data/README.md");
 
-  eleventyConfig.addPassthroughCopy({ "gas/Code.js": "Code.js" });
+  fs.readdirSync(path.join(__dirname, "gas"))
+    .filter((name) => name.endsWith(".js"))
+    .forEach((name) => {
+      eleventyConfig.addPassthroughCopy({ [`gas/${name}`]: name });
+    });
   eleventyConfig.addPassthroughCopy({ "appsscript.json": "appsscript.json" });
 
   eleventyConfig.addCollection("pages", (collectionApi) =>

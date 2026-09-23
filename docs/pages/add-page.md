@@ -1,6 +1,6 @@
 ---
 title: ページの追加
-order: 2
+order: 20
 ---
 
 `docs/pages/` に Markdown を足すと、ビルド後のサイドバーに項目が増えます。

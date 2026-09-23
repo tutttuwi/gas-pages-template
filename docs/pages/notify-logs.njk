@@ -1,0 +1,17 @@
+---
+title: 通知ログ
+order: 4
+---
+
+<p>送信結果とエラーを新しい順に表示します。保存件数には上限があります。</p>
+
+<div class="notice" data-local-banner hidden>ローカルプレビューです。ログはブラウザ内にだけ残ります。</div>
+<p class="status" data-status hidden></p>
+
+<section class="panel">
+  <div class="actions">
+    <button type="button" class="btn" data-action="reload-logs">再読み込み</button>
+    <button type="button" class="btn" data-action="clear-logs">ログを消す</button>
+  </div>
+  <div data-log-list></div>
+</section>

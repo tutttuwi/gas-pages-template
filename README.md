@@ -44,3 +44,16 @@ DEPLOYMENT_ID=AKfycb... pnpm run deploy
 `docs/pages/` に Markdown を追加します。Front Matter の `title` と `order` がサイドバーのラベルと並び順になります。詳細は `docs/README.md` を見てください。
 
 配色は `docs/_data/site.json` の `theme` です。項目の意味と「システム / ライト / ダーク」切替は `docs/_data/README.md` を見てください。
+
+## フォーム回答の Slack 通知
+
+Google フォーム側に GAS は置きません。回答先スプレッドシートの新しい行を、この Web アプリが定期チェックして Incoming Webhook へ送ります。
+
+1. フォームの回答をスプレッドシートへリンクする
+2. Slack Incoming Webhook を発行する
+3. デプロイした Web アプリの「通知ルール」で宛先と監視ルールを保存する
+4. 「トリガー」で間隔を選んで定期チェックを有効にする
+
+通知文は `{{列名}}` でカスタマイズできます。ルール保存時の既存行は既読になり、それ以降の増分だけが送られます。
+
+この機能ブランチを試すときは、既存の GAS プロジェクトを上書きしないよう、`clasp create` で別プロジェクトを作って `.clasp.json` の `scriptId` を切り替えてください。
