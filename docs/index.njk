@@ -2,13 +2,27 @@
 permalink: /index.html
 eleventyExcludeFromCollections: true
 ---
+{% set themeStorageKey = "gas-pages-theme" %}
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="system">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ site.title }}</title>
+    <script>
+      (function () {
+        try {
+          var theme = window.localStorage.getItem("{{ themeStorageKey }}");
+          if (theme === "light" || theme === "dark" || theme === "system") {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        } catch (error) {
+          // Keep data-theme="system" when storage is blocked.
+        }
+      })();
+    </script>
     <style>
+      {% include "theme-vars.njk" %}
       {% include "styles.css" %}
     </style>
   </head>
@@ -21,6 +35,11 @@ eleventyExcludeFromCollections: true
           <a href="#{{ page.fileSlug }}"{% if loop.first %} aria-current="page"{% endif %}>{{ page.data.title }}</a>
           {% endfor %}
         </nav>
+        <div class="theme-switch" role="radiogroup" aria-label="配色">
+          <button type="button" role="radio" data-theme-value="system">システム</button>
+          <button type="button" role="radio" data-theme-value="light">ライト</button>
+          <button type="button" role="radio" data-theme-value="dark">ダーク</button>
+        </div>
       </aside>
       <div class="main">
         {% if collections.pages.length %}

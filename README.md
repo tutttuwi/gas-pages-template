@@ -43,6 +43,8 @@ DEPLOYMENT_ID=AKfycb... pnpm run deploy
 
 `docs/pages/` に Markdown を追加します。Front Matter の `title` と `order` がサイドバーのラベルと並び順になります。詳細は `docs/README.md` を見てください。
 
+配色は `docs/_data/site.json` の `theme` です。項目の意味と「システム / ライト / ダーク」切替は `docs/_data/README.md` を見てください。
+
 ## フォーム回答の Slack 通知
 
 Google フォーム側に GAS は置きません。回答先スプレッドシートの新しい行を、この Web アプリが定期チェックして Incoming Webhook へ送ります。
