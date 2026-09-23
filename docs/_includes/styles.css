@@ -590,6 +590,115 @@ body {
   padding: 2.4rem 1.5rem;
 }
 
+.toast-host {
+  position: fixed;
+  z-index: 30;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.7rem 0.75rem 0.85rem;
+  border-radius: 0.7rem;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--elev-shadow), 0 10px 24px rgba(28, 25, 23, 0.12);
+  pointer-events: auto;
+}
+
+.toast-body {
+  display: flex;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.toast-label,
+.toast-message {
+  margin: 0;
+}
+
+.toast-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.toast-message {
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.toast-mark {
+  flex: 0 0 auto;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-top: 0.28rem;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.toast.is-pending .toast-mark {
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  background: transparent;
+  animation: toast-spin 0.7s linear infinite;
+}
+
+.toast.is-success {
+  background: var(--notice-bg);
+  color: var(--notice-text);
+}
+
+.toast.is-success .toast-mark {
+  background: var(--accent);
+}
+
+.toast.is-error {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.toast.is-error .toast-mark {
+  background: var(--error-text);
+}
+
+.toast-close {
+  appearance: none;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@keyframes toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast.is-pending .toast-mark {
+    animation: none;
+    border-color: var(--accent);
+  }
+}
+
 @media (max-width: 800px) {
   .app {
     grid-template-columns: 1fr;

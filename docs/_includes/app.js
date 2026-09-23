@@ -46,14 +46,80 @@
     return date.toLocaleString("ja-JP");
   }
 
-  function showStatus(root, message, isError) {
-    var el = root.querySelector("[data-status]");
-    if (!el) {
+  var activePendingToast = null;
+
+  function toastHost() {
+    return document.querySelector("[data-toast-host]");
+  }
+
+  function dismissToast(toast) {
+    if (!toast) {
       return;
     }
-    el.hidden = !message;
-    el.textContent = message || "";
-    el.classList.toggle("is-error", !!isError);
+    if (toast._timer) {
+      clearTimeout(toast._timer);
+    }
+    if (activePendingToast === toast) {
+      activePendingToast = null;
+    }
+    toast.remove();
+  }
+
+  function paintToast(toast, message, kind) {
+    var label = kind === "pending" ? "処理中" : kind === "error" ? "失敗" : "成功";
+    toast.className = "toast is-" + kind;
+    toast.setAttribute("role", kind === "error" ? "alert" : "status");
+    toast.querySelector("[data-toast-label]").textContent = label;
+    toast.querySelector("[data-toast-message]").textContent = message;
+    if (toast._timer) {
+      clearTimeout(toast._timer);
+      toast._timer = null;
+    }
+    if (kind === "success") {
+      toast._timer = setTimeout(function () {
+        dismissToast(toast);
+      }, 4200);
+    } else if (kind === "error") {
+      toast._timer = setTimeout(function () {
+        dismissToast(toast);
+      }, 8000);
+    }
+  }
+
+  function createToast(message, kind) {
+    var toast = document.createElement("div");
+    toast.innerHTML =
+      '<div class="toast-body"><span class="toast-mark" aria-hidden="true"></span><div><p class="toast-label" data-toast-label></p><p class="toast-message" data-toast-message></p></div></div>' +
+      '<button type="button" class="toast-close" aria-label="閉じる">×</button>';
+    toast.setAttribute("aria-atomic", "true");
+    toast.querySelector(".toast-close").addEventListener("click", function () {
+      dismissToast(toast);
+    });
+    paintToast(toast, message, kind);
+    toastHost().appendChild(toast);
+    return toast;
+  }
+
+  function beginPendingToast() {
+    if (activePendingToast) {
+      return activePendingToast;
+    }
+    activePendingToast = createToast("処理しています…", "pending");
+    return activePendingToast;
+  }
+
+  function showStatus(root, message, isError) {
+    if (!message) {
+      beginPendingToast();
+      return;
+    }
+    var kind = isError ? "error" : "success";
+    if (activePendingToast) {
+      paintToast(activePendingToast, message, kind);
+      activePendingToast = null;
+      return;
+    }
+    createToast(message, kind);
   }
 
   function setDisabled(root, disabled) {
@@ -63,6 +129,13 @@
         el.disabled = disabled;
       },
     );
+    if (disabled) {
+      beginPendingToast();
+      return;
+    }
+    if (activePendingToast) {
+      dismissToast(activePendingToast);
+    }
   }
 
   function maskUrl(url) {
