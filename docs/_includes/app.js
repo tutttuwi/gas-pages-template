@@ -2,9 +2,12 @@
   var MOCK_KEY = "gas-pages-form-slack-mock-v1";
   var isLocal = !(window.google && google.script && google.script.run);
 
-  Array.prototype.forEach.call(document.querySelectorAll("[data-local-banner]"), function (el) {
-    el.hidden = !isLocal;
-  });
+  Array.prototype.forEach.call(
+    document.querySelectorAll("[data-local-banner]"),
+    function (el) {
+      el.hidden = !isLocal;
+    },
+  );
 
   function gasRun(name) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -54,9 +57,12 @@
   }
 
   function setDisabled(root, disabled) {
-    Array.prototype.forEach.call(root.querySelectorAll("button, input, select, textarea"), function (el) {
-      el.disabled = disabled;
-    });
+    Array.prototype.forEach.call(
+      root.querySelectorAll("button, input, select, textarea"),
+      function (el) {
+        el.disabled = disabled;
+      },
+    );
   }
 
   function maskUrl(url) {
@@ -113,7 +119,10 @@
       spreadsheetId: source.spreadsheetId || "",
       spreadsheetUrl: source.spreadsheetUrl || "",
       sheetName: source.sheetName || "",
-      lastRow: source.lastRow == null || source.lastRow === "" ? null : Number(source.lastRow),
+      lastRow:
+        source.lastRow == null || source.lastRow === ""
+          ? null
+          : Number(source.lastRow),
       lastCheckedAt: source.lastCheckedAt || "",
       lastError: source.lastError || "",
     };
@@ -179,7 +188,8 @@
 
   function mockPreview(payload) {
     var headers = ["Timestamp", "氏名", "メール"];
-    var template = (payload && payload.messageTemplate) || mockDefaultTemplate(headers);
+    var template =
+      (payload && payload.messageTemplate) || mockDefaultTemplate(headers);
     var fields = {
       Timestamp: "2026-09-21 16:00:00",
       氏名: "山田 太郎",
@@ -203,11 +213,13 @@
   }
 
   function mockDefaultTemplate(headers) {
-    return ["*新しい回答*（" + placeholderToken("_sourceName") + "）"].concat(
-      headers.map(function (header) {
-        return "• " + header + ": " + placeholderToken(header);
-      }),
-    ).join("\n");
+    return ["**新しい回答**（" + placeholderToken("_sourceName") + "）"]
+      .concat(
+        headers.map(function (header) {
+          return "• " + header + ": " + placeholderToken(header);
+        }),
+      )
+      .join("\n");
   }
 
   function copyText(text) {
@@ -234,7 +246,9 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
     }
-    return Promise.reject(new Error("クリップボードにコピーできませんでした。"));
+    return Promise.reject(
+      new Error("クリップボードにコピーできませんでした。"),
+    );
   }
 
   function mockPlain(value) {
@@ -242,15 +256,20 @@
   }
 
   function mockRender(template, fields) {
-    return String(template || "").replace(/\{\{\s*([^}]+)\s*\}\}/g, function (_, key) {
-      var name = String(key || "").trim();
-      return fields[name] == null ? "" : mockPlain(fields[name]);
-    });
+    return String(template || "").replace(
+      /\{\{\s*([^}]+)\s*\}\}/g,
+      function (_, key) {
+        var name = String(key || "").trim();
+        return fields[name] == null ? "" : mockPlain(fields[name]);
+      },
+    );
   }
 
   function mockAssertSlack(url) {
     if (!/^https:\/\/hooks\.slack\.com\//.test(String(url || ""))) {
-      throw new Error("Slack Incoming Webhook の URL（https://hooks.slack.com/ ...）を入力してください。");
+      throw new Error(
+        "Slack Incoming Webhook の URL（https://hooks.slack.com/ ...）を入力してください。",
+      );
     }
   }
 
@@ -300,16 +319,24 @@
         name: destName,
         url: url,
       };
-      state.destinations = state.destinations.filter(function (item) {
-        return item.id !== destination.id;
-      }).concat([destination]);
+      state.destinations = state.destinations
+        .filter(function (item) {
+          return item.id !== destination.id;
+        })
+        .concat([destination]);
       mockSave(state);
       return mockPublicDestination(destination);
     }
     if (name === "apiDeleteDestination") {
       var destId = args[0];
-      if (state.rules.some(function (rule) { return rule.destinationId === destId; })) {
-        throw new Error("この宛先を使っている通知ルールがあるため削除できません。");
+      if (
+        state.rules.some(function (rule) {
+          return rule.destinationId === destId;
+        })
+      ) {
+        throw new Error(
+          "この宛先を使っている通知ルールがあるため削除できません。",
+        );
       }
       state.destinations = state.destinations.filter(function (item) {
         return item.id !== destId;
@@ -323,12 +350,18 @@
         throw new Error("ルール名を入力してください。");
       }
       var destinationId = String((payload && payload.destinationId) || "");
-      if (!state.destinations.some(function (item) { return item.id === destinationId; })) {
+      if (
+        !state.destinations.some(function (item) {
+          return item.id === destinationId;
+        })
+      ) {
         throw new Error("Slack 宛先を選択してください。");
       }
       var rawSources = payload && payload.sources;
       if (!Array.isArray(rawSources) || !rawSources.length) {
-        throw new Error("監視対象のスプレッドシートを1件以上追加してください。");
+        throw new Error(
+          "監視対象のスプレッドシートを1件以上追加してください。",
+        );
       }
       if (rawSources.length > 20) {
         throw new Error("監視対象は 20 件までです。");
@@ -340,7 +373,9 @@
       var sources = rawSources.map(function (item, index) {
         var label = String((item && item.label) || "").trim();
         if (!label) {
-          throw new Error("監視対象 " + (index + 1) + " の名前を入力してください。");
+          throw new Error(
+            "監視対象 " + (index + 1) + " の名前を入力してください。",
+          );
         }
         var meta = mockDescribe(item && item.spreadsheetUrl);
         var sheetName = String((item && item.sheetName) || "").trim();
@@ -349,13 +384,21 @@
         }
         var key = meta.spreadsheetId + "\n" + sheetName;
         if (seenSources[key]) {
-          throw new Error(label + ": 同じスプレッドシートの同じシートが重複しています。");
+          throw new Error(
+            label + ": 同じスプレッドシートの同じシートが重複しています。",
+          );
         }
         seenSources[key] = true;
-        var previous = currentRule && item.id
-          ? currentRule.sources.filter(function (source) { return source.id === item.id; })[0]
-          : null;
-        var sameTarget = previous && previous.spreadsheetId === meta.spreadsheetId && previous.sheetName === sheetName;
+        var previous =
+          currentRule && item.id
+            ? currentRule.sources.filter(function (source) {
+                return source.id === item.id;
+              })[0]
+            : null;
+        var sameTarget =
+          previous &&
+          previous.spreadsheetId === meta.spreadsheetId &&
+          previous.sheetName === sheetName;
         return {
           id: previous ? previous.id : mockId(),
           label: label,
@@ -371,15 +414,20 @@
         id: currentRule ? currentRule.id : mockId(),
         name: ruleName,
         destinationId: destinationId,
-        messageTemplate: String((payload && payload.messageTemplate) || mockDefaultTemplate(["Timestamp", "氏名", "メール"])),
+        messageTemplate: String(
+          (payload && payload.messageTemplate) ||
+            mockDefaultTemplate(["Timestamp", "氏名", "メール"]),
+        ),
         enabled: !(payload && payload.enabled === false),
         sources: sources,
         lastCheckedAt: currentRule ? currentRule.lastCheckedAt : "",
         lastError: "",
       };
-      state.rules = state.rules.filter(function (item) {
-        return item.id !== rule.id;
-      }).concat([rule]);
+      state.rules = state.rules
+        .filter(function (item) {
+          return item.id !== rule.id;
+        })
+        .concat([rule]);
       mockSave(state);
       return mockPublicRule(rule);
     }
@@ -402,9 +450,10 @@
       }
       markRule.sources.forEach(function (source) {
         var meta = mockDescribe(source.spreadsheetUrl);
-        var sheet = meta.sheets.filter(function (item) {
-          return item.name === source.sheetName;
-        })[0] || meta.sheets[0];
+        var sheet =
+          meta.sheets.filter(function (item) {
+            return item.name === source.sheetName;
+          })[0] || meta.sheets[0];
         source.lastRow = sheet ? sheet.lastRow : 0;
         source.lastCheckedAt = new Date().toISOString();
         source.lastError = "";
@@ -430,7 +479,8 @@
           ok: true,
           ruleId: testRule.id,
           ruleName: testRule.name + " / " + source.label,
-          detail: source.label + " のテスト通知を送信しました。（ローカルモック）",
+          detail:
+            source.label + " のテスト通知を送信しました。（ローカルモック）",
         });
       });
       mockSave(state);
@@ -441,12 +491,15 @@
     }
     if (name === "apiSetTrigger") {
       state.triggerEnabled = !!(payload && payload.enabled);
-      state.settings.everyMinutes = Number(payload && payload.everyMinutes) || 5;
+      state.settings.everyMinutes =
+        Number(payload && payload.everyMinutes) || 5;
       mockSave(state);
       return mockRun("apiGetBootstrap", []).trigger;
     }
     if (name === "apiCheckNow") {
-      var enabledRules = state.rules.filter(function (rule) { return rule.enabled; });
+      var enabledRules = state.rules.filter(function (rule) {
+        return rule.enabled;
+      });
       var checkedSources = enabledRules.reduce(function (count, rule) {
         return count + ((rule.sources && rule.sources.length) || 0);
       }, 0);
@@ -460,7 +513,13 @@
           : "手動チェック: 有効なルールがありません。",
       });
       mockSave(state);
-      return { ok: true, checked: checkedSources, notified: 0, errors: [], manual: true };
+      return {
+        ok: true,
+        checked: checkedSources,
+        notified: 0,
+        errors: [],
+        manual: true,
+      };
     }
     if (name === "apiListLogs") {
       return state.logs;
@@ -478,9 +537,21 @@
   }
 
   function renderDestinationOptions(select, destinations, selectedId) {
-    select.innerHTML = '<option value="">選択してください</option>' + destinations.map(function (item) {
-      return '<option value="' + escapeHtml(item.id) + '"' + (item.id === selectedId ? " selected" : "") + ">" + escapeHtml(item.name) + "</option>";
-    }).join("");
+    select.innerHTML =
+      '<option value="">選択してください</option>' +
+      destinations
+        .map(function (item) {
+          return (
+            '<option value="' +
+            escapeHtml(item.id) +
+            '"' +
+            (item.id === selectedId ? " selected" : "") +
+            ">" +
+            escapeHtml(item.name) +
+            "</option>"
+          );
+        })
+        .join("");
   }
 
   function initRulesPage(root) {
@@ -492,8 +563,72 @@
     var destHint = root.querySelector("[data-destination-url-hint]");
     var placeholderList = root.querySelector("[data-placeholder-list]");
     var placeholderLabel = root.querySelector("[data-placeholder-label]");
-    var copyAllPlaceholders = root.querySelector("[data-action='copy-all-placeholders']");
+    var copyAllPlaceholders = root.querySelector(
+      "[data-action='copy-all-placeholders']",
+    );
     var bootstrap = { destinations: [], rules: [] };
+
+    function syncDestinationEditor() {
+      var editing = !!destForm.id.value;
+      var submit = root.querySelector("[data-destination-submit]");
+      var reset = root.querySelector("[data-action='reset-destination']");
+      submit.textContent = editing ? "変更を保存" : "宛先を保存";
+      reset.textContent = editing ? "編集をやめる" : "入力をやり直す";
+      destHint.hidden = !editing;
+      destHint.textContent = editing
+        ? "「" +
+          (destForm.name.value || "無題") +
+          "」を編集しています。URL を空のまま保存すると、保存済みの値を維持します。"
+        : "";
+      Array.prototype.forEach.call(
+        root.querySelectorAll("[data-destination-id]"),
+        function (item) {
+          item.classList.toggle(
+            "is-editing",
+            item.getAttribute("data-destination-id") === destForm.id.value,
+          );
+        },
+      );
+    }
+
+    function syncRuleEditor() {
+      var editing = !!ruleForm.id.value;
+      var banner = root.querySelector("[data-rule-editing]");
+      var submit = root.querySelector("[data-rule-submit]");
+      var reset = root.querySelector("[data-action='reset-rule']");
+      submit.textContent = editing ? "変更を保存" : "ルールを保存";
+      reset.textContent = editing ? "編集をやめる" : "入力をやり直す";
+      banner.hidden = !editing;
+      banner.textContent = editing
+        ? "「" +
+          (ruleForm.name.value || "無題") +
+          "」を編集しています。保存するまで一覧は変わりません。"
+        : "";
+      Array.prototype.forEach.call(
+        root.querySelectorAll("[data-rule-id]"),
+        function (item) {
+          item.classList.toggle(
+            "is-editing",
+            item.getAttribute("data-rule-id") === ruleForm.id.value,
+          );
+        },
+      );
+    }
+
+    function insertPlaceholder(textarea, token) {
+      var value = textarea.value;
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      if (start == null || end == null) {
+        start = value.length;
+        end = value.length;
+      }
+      textarea.value = value.slice(0, start) + token + value.slice(end);
+      var cursor = start + token.length;
+      textarea.focus();
+      textarea.selectionStart = cursor;
+      textarea.selectionEnd = cursor;
+    }
 
     function refresh() {
       return gasRun("apiGetBootstrap").then(function (data) {
@@ -501,7 +636,11 @@
         renderDestinations();
         renderRules();
         renderConfigLink(data.configUrl);
-        renderDestinationOptions(ruleForm.destinationId, data.destinations, ruleForm.destinationId.value);
+        renderDestinationOptions(
+          ruleForm.destinationId,
+          data.destinations,
+          ruleForm.destinationId.value,
+        );
       });
     }
 
@@ -515,60 +654,145 @@
       }
       el.hidden = false;
       if (configUrl) {
-        el.innerHTML = '設定は <a href="' + escapeHtml(configUrl) + '" target="_blank" rel="noopener">GAS Pages 設定</a> に保存しています。デプロイしたアカウントのマイドライブにあり、Webhook URL が入るので共有しないでください。';
+        el.innerHTML =
+          '設定は <a href="' +
+          escapeHtml(configUrl) +
+          '" target="_blank" rel="noopener">GAS Pages 設定</a> に保存しています。デプロイしたアカウントのマイドライブにあり、Webhook URL が入るので共有しないでください。';
         return;
       }
-      el.textContent = "最初の保存で、マイドライブに「GAS Pages 設定」を作ります。Webhook URL が入るので、そのファイルは共有しないでください。";
+      el.textContent =
+        "最初の保存で、マイドライブに「GAS Pages 設定」を作ります。Webhook URL が入るので、そのファイルは共有しないでください。";
     }
 
     function renderDestinations() {
       if (!bootstrap.destinations.length) {
-        destList.innerHTML = '<p class="empty-inline">まだ宛先がありません。</p>';
+        destList.innerHTML =
+          '<p class="empty-inline">まだ宛先がありません。</p>';
         return;
       }
-      destList.innerHTML = '<ul class="item-list">' + bootstrap.destinations.map(function (item) {
-        return '<li><div><strong>' + escapeHtml(item.name) + '</strong><span class="meta">' + escapeHtml(item.urlMasked) + '</span></div>' +
-          '<div class="row-actions">' +
-          '<button type="button" class="btn" data-edit-destination="' + escapeHtml(item.id) + '">編集</button>' +
-          '<button type="button" class="btn" data-delete-destination="' + escapeHtml(item.id) + '">削除</button>' +
-          "</div></li>";
-      }).join("") + "</ul>";
+      destList.innerHTML =
+        '<ul class="item-list">' +
+        bootstrap.destinations
+          .map(function (item) {
+            var editing = item.id === destForm.id.value ? " is-editing" : "";
+            return (
+              '<li class="' +
+              editing.trim() +
+              '" data-destination-id="' +
+              escapeHtml(item.id) +
+              '"><div><strong>' +
+              escapeHtml(item.name) +
+              '</strong><span class="meta">' +
+              escapeHtml(item.urlMasked) +
+              "</span></div>" +
+              '<div class="row-actions">' +
+              '<button type="button" class="btn" data-edit-destination="' +
+              escapeHtml(item.id) +
+              '">編集</button>' +
+              '<button type="button" class="btn btn-danger" data-delete-destination="' +
+              escapeHtml(item.id) +
+              '">削除</button>' +
+              "</div></li>"
+            );
+          })
+          .join("") +
+        "</ul>";
     }
 
     function renderRules() {
       if (!bootstrap.rules.length) {
-        ruleList.innerHTML = '<p class="empty-inline">まだルールがありません。</p>';
+        ruleList.innerHTML =
+          '<p class="empty-inline">まだルールがありません。</p>';
         return;
       }
       var destNames = {};
       bootstrap.destinations.forEach(function (item) {
         destNames[item.id] = item.name;
       });
-      ruleList.innerHTML = '<ul class="item-list">' + bootstrap.rules.map(function (item) {
-        var status = item.enabled ? "有効" : "停止";
-        var sources = item.sources || [];
-        var sourceHtml = sources.length
-          ? '<ul class="source-summary">' + sources.map(function (source) {
-              var error = source.lastError ? '<span class="meta is-error">' + escapeHtml(source.lastError) + "</span>" : "";
-              var row = source.lastRow == null ? "-" : source.lastRow;
-              return '<li title="' + escapeHtml(source.spreadsheetUrl || "") + '"><span>' +
-                escapeHtml(source.label || "（名前なし）") + " → " + escapeHtml(source.sheetName || "（シート未設定）") +
-                "（最終行 " + escapeHtml(row) + "）</span>" + error + "</li>";
-            }).join("") + "</ul>"
-          : '<span class="meta">監視対象なし</span>';
-        var sourceHasError = sources.some(function (source) { return source.lastError; });
-        var error = !sourceHasError && item.lastError ? '<span class="meta is-error">' + escapeHtml(item.lastError) + "</span>" : "";
-        return '<li><div><strong>' + escapeHtml(item.name) + "</strong>" +
-          '<span class="meta">' + escapeHtml(status) + " / " + escapeHtml(destNames[item.destinationId] || "宛先なし") + " / 監視対象 " + escapeHtml(sources.length) + " 件</span>" +
-          sourceHtml +
-          '<span class="meta">最終チェック: ' + escapeHtml(formatTime(item.lastCheckedAt)) + "</span>" + error +
-          "</div><div class='row-actions'>" +
-          '<button type="button" class="btn" data-edit-rule="' + escapeHtml(item.id) + '">編集</button>' +
-          '<button type="button" class="btn" data-test-rule="' + escapeHtml(item.id) + '">テスト通知</button>' +
-          '<button type="button" class="btn" data-read-rule="' + escapeHtml(item.id) + '">現在行まで既読</button>' +
-          '<button type="button" class="btn" data-delete-rule="' + escapeHtml(item.id) + '">削除</button>' +
-          "</div></li>";
-      }).join("") + "</ul>";
+      ruleList.innerHTML =
+        '<ul class="item-list">' +
+        bootstrap.rules
+          .map(function (item) {
+            var status = item.enabled ? "有効" : "停止";
+            var badgeClass = item.enabled ? "badge" : "badge is-off";
+            var sources = item.sources || [];
+            var sourceHtml = sources.length
+              ? '<ul class="source-summary">' +
+                sources
+                  .map(function (source) {
+                    var error = source.lastError
+                      ? '<span class="meta is-error">' +
+                        escapeHtml(source.lastError) +
+                        "</span>"
+                      : "";
+                    var row = source.lastRow == null ? "-" : source.lastRow;
+                    return (
+                      '<li title="' +
+                      escapeHtml(source.spreadsheetUrl || "") +
+                      '"><span>' +
+                      escapeHtml(source.label || "（名前なし）") +
+                      " → " +
+                      escapeHtml(source.sheetName || "（シート未設定）") +
+                      "（最終行 " +
+                      escapeHtml(row) +
+                      "）</span>" +
+                      error +
+                      "</li>"
+                    );
+                  })
+                  .join("") +
+                "</ul>"
+              : '<span class="meta">監視対象なし</span>';
+            var sourceHasError = sources.some(function (source) {
+              return source.lastError;
+            });
+            var error =
+              !sourceHasError && item.lastError
+                ? '<span class="meta is-error">' +
+                  escapeHtml(item.lastError) +
+                  "</span>"
+                : "";
+            var editing = item.id === ruleForm.id.value ? " is-editing" : "";
+            return (
+              '<li class="is-stacked' +
+              editing +
+              '" data-rule-id="' +
+              escapeHtml(item.id) +
+              '"><div><div class="rule-card-title"><strong>' +
+              escapeHtml(item.name) +
+              '</strong><span class="' +
+              badgeClass +
+              '">' +
+              escapeHtml(status) +
+              "</span></div>" +
+              '<span class="meta">' +
+              escapeHtml(destNames[item.destinationId] || "宛先なし") +
+              " / 監視対象 " +
+              escapeHtml(sources.length) +
+              " 件</span>" +
+              sourceHtml +
+              '<span class="meta">最終チェック: ' +
+              escapeHtml(formatTime(item.lastCheckedAt)) +
+              "</span>" +
+              error +
+              "</div><div class='row-actions'>" +
+              '<button type="button" class="btn" data-edit-rule="' +
+              escapeHtml(item.id) +
+              '">編集</button>' +
+              '<button type="button" class="btn" data-test-rule="' +
+              escapeHtml(item.id) +
+              '">テスト通知</button>' +
+              '<button type="button" class="btn" data-read-rule="' +
+              escapeHtml(item.id) +
+              '" title="現在の最終行までを通知済みにします">既読にする</button>' +
+              '<button type="button" class="btn btn-danger" data-delete-rule="' +
+              escapeHtml(item.id) +
+              '">削除</button>' +
+              "</div></li>"
+            );
+          })
+          .join("") +
+        "</ul>";
     }
 
     var sourceFieldSeq = 0;
@@ -577,43 +801,121 @@
       var items = sources && sources.length ? sources : [{}];
       var container = root.querySelector("[data-source-fields]");
       container.innerHTML = items.map(sourceCardHtml).join("");
-      updateSourceCards();
+      updateSourceCards(0);
     }
 
     function sourceCardHtml(source) {
       sourceFieldSeq += 1;
       var listId = "sheet-options-" + sourceFieldSeq;
       var sheetName = (source && source.sheetName) || "";
-      var option = sheetName ? '<option value="' + escapeHtml(sheetName) + '"></option>' : "";
-      return '<div class="source-card" data-source-card>' +
-        '<div class="source-card-head"><strong data-source-title>監視対象</strong>' +
-        '<button type="button" class="btn" data-action="remove-source">外す</button></div>' +
-        '<input type="hidden" data-source-id value="' + escapeHtml((source && source.id) || "") + '" />' +
+      var option = sheetName
+        ? '<option value="' + escapeHtml(sheetName) + '"></option>'
+        : "";
+      return (
+        '<div class="source-card" data-source-card role="tabpanel">' +
+        '<div class="source-card-head"><span class="hint" data-source-title>監視対象</span>' +
+        '<button type="button" class="btn btn-danger" data-action="remove-source">この対象を外す</button></div>' +
+        '<input type="hidden" data-source-id value="' +
+        escapeHtml((source && source.id) || "") +
+        '" />' +
         '<label class="field"><span>名前</span>' +
-        '<input data-source-label required placeholder="問い合わせフォームA" value="' + escapeHtml((source && source.label) || "") + '" /></label>' +
+        '<input data-source-label placeholder="問い合わせフォームA" value="' +
+        escapeHtml((source && source.label) || "") +
+        '" /></label>' +
         '<label class="field"><span>スプレッドシートの URL または ID</span>' +
-        '<input data-source-url required placeholder="https://docs.google.com/spreadsheets/d/..." value="' + escapeHtml((source && source.spreadsheetUrl) || "") + '" /></label>' +
-        '<div class="actions"><button type="button" class="btn" data-action="load-sheets">シート一覧を読み込む</button></div>' +
-        '<label class="field"><span>シート</span>' +
-        '<input data-source-sheet list="' + listId + '" required placeholder="フォームの回答 1" value="' + escapeHtml(sheetName) + '" />' +
-        '<datalist id="' + listId + '" data-sheet-options>' + option + "</datalist></label>" +
-        "</div>";
+        '<input data-source-url placeholder="https://docs.google.com/spreadsheets/d/..." value="' +
+        escapeHtml((source && source.spreadsheetUrl) || "") +
+        '" /></label>' +
+        '<div class="sheet-row"><label class="field"><span>シート</span>' +
+        '<input data-source-sheet list="' +
+        listId +
+        '" placeholder="フォームの回答 1" value="' +
+        escapeHtml(sheetName) +
+        '" />' +
+        '<datalist id="' +
+        listId +
+        '" data-sheet-options>' +
+        option +
+        "</datalist></label>" +
+        '<button type="button" class="btn" data-action="load-sheets">シートを読み込む</button></div>' +
+        "</div>"
+      );
     }
 
-    function updateSourceCards() {
-      var cards = root.querySelectorAll("[data-source-card]");
+    function sourceCards() {
+      return root.querySelectorAll("[data-source-card]");
+    }
+
+    function sourceTabLabel(card, index) {
+      var label = card.querySelector("[data-source-label]").value.trim();
+      return label || "監視対象 " + (index + 1);
+    }
+
+    function updateSourceCards(activeIndex) {
+      var cards = sourceCards();
+      var tabs = root.querySelector("[data-source-tabs]");
+      var current = activeIndex;
+      if (current == null) {
+        current = 0;
+        Array.prototype.forEach.call(cards, function (card, index) {
+          if (!card.hidden) {
+            current = index;
+          }
+        });
+      }
+      if (current >= cards.length) {
+        current = cards.length - 1;
+      }
+      if (current < 0) {
+        current = 0;
+      }
+      tabs.innerHTML = Array.prototype.map
+        .call(cards, function (card, index) {
+          var selected = index === current;
+          var panelId = "source-panel-" + index;
+          card.id = panelId;
+          return (
+            '<button type="button" class="btn source-tab' +
+            (selected ? " is-selected" : "") +
+            '" role="tab" id="' +
+            panelId +
+            '-tab" aria-selected="' +
+            (selected ? "true" : "false") +
+            '" aria-controls="' +
+            panelId +
+            '" data-action="select-source" data-source-index="' +
+            index +
+            '">' +
+            escapeHtml(sourceTabLabel(card, index)) +
+            "</button>"
+          );
+        })
+        .join("");
       Array.prototype.forEach.call(cards, function (card, index) {
-        card.querySelector("[data-source-title]").textContent = "監視対象 " + (index + 1);
-        card.querySelector("[data-action='remove-source']").hidden = cards.length < 2;
+        var selected = index === current;
+        card.hidden = !selected;
+        card.setAttribute("aria-labelledby", "source-panel-" + index + "-tab");
+        card.querySelector("[data-source-title]").textContent = sourceTabLabel(
+          card,
+          index,
+        );
+        card.querySelector("[data-action='remove-source']").hidden =
+          cards.length < 2;
       });
+      var selectedTab = tabs.querySelector('[aria-selected="true"]');
+      if (activeIndex != null && selectedTab) {
+        selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
     }
 
     function fillSheetOptions(card, sheets, selected) {
       var list = card.querySelector("[data-sheet-options]");
-      list.innerHTML = (sheets || []).map(function (sheet) {
-        var name = sheet.name || sheet;
-        return '<option value="' + escapeHtml(name) + '"></option>';
-      }).join("");
+      list.innerHTML = (sheets || [])
+        .map(function (sheet) {
+          var name = sheet.name || sheet;
+          return '<option value="' + escapeHtml(name) + '"></option>';
+        })
+        .join("");
       var input = card.querySelector("[data-source-sheet]");
       if (selected) {
         input.value = selected;
@@ -623,7 +925,7 @@
     }
 
     function collectSources() {
-      return Array.prototype.map.call(root.querySelectorAll("[data-source-card]"), function (card) {
+      return Array.prototype.map.call(sourceCards(), function (card) {
         return {
           id: card.querySelector("[data-source-id]").value,
           label: card.querySelector("[data-source-label]").value.trim(),
@@ -635,54 +937,79 @@
 
     function sourceValidationError(sources) {
       if (!sources.length) {
-        return "監視対象のスプレッドシートを1件以上追加してください。";
+        return {
+          index: -1,
+          message: "監視対象のスプレッドシートを1件以上追加してください。",
+        };
       }
       if (sources.length > 20) {
-        return "監視対象は 20 件までです。";
+        return { index: -1, message: "監視対象は 20 件までです。" };
       }
       var seen = {};
       for (var i = 0; i < sources.length; i++) {
         var source = sources[i];
         if (!source.label || !source.spreadsheetUrl || !source.sheetName) {
-          return "監視対象の名前、スプレッドシート、シートをすべて入力してください。";
+          return {
+            index: i,
+            message:
+              "監視対象の名前、スプレッドシート、シートをすべて入力してください。",
+          };
         }
         var key = source.spreadsheetUrl + "\n" + source.sheetName;
         if (seen[key]) {
-          return "同じスプレッドシートの同じシートが重複しています。";
+          return {
+            index: i,
+            message: "同じスプレッドシートの同じシートが重複しています。",
+          };
         }
         seen[key] = true;
       }
-      return "";
+      return null;
     }
 
     function clearPlaceholders() {
       placeholderList.innerHTML = "";
-      placeholderLabel.textContent = "先頭の監視対象から列名を読み込みます。";
+      placeholderLabel.textContent =
+        "列名を取得すると、クリックでメッセージへ挿入できます。";
       copyAllPlaceholders.hidden = true;
     }
 
     function renderPlaceholders(headers, sourceLabel) {
-      var names = (headers || []).map(function (header) {
-        return String(header || "").trim();
-      }).filter(Boolean);
+      var names = (headers || [])
+        .map(function (header) {
+          return String(header || "").trim();
+        })
+        .filter(Boolean);
       if (!names.length) {
         clearPlaceholders();
         showStatus(root, "列名が見つかりませんでした。", true);
         return;
       }
-      placeholderList.innerHTML = names.map(function (name) {
-        var token = placeholderToken(name);
-        return '<button type="button" class="btn placeholder-chip" data-action="copy-placeholder" data-placeholder="' +
-          escapeHtml(token) + '">' + escapeHtml(token) + "</button>";
-      }).join("");
-      placeholderLabel.textContent = (sourceLabel ? sourceLabel + " の" : "") + "列名です。クリックするとコピーします。";
+      placeholderList.innerHTML = names
+        .map(function (name) {
+          var token = placeholderToken(name);
+          return (
+            '<button type="button" class="btn placeholder-chip" data-action="copy-placeholder" data-placeholder="' +
+            escapeHtml(token) +
+            '">' +
+            escapeHtml(token) +
+            "</button>"
+          );
+        })
+        .join("");
+      placeholderLabel.textContent =
+        (sourceLabel ? sourceLabel + " の" : "") +
+        "列名です。クリックするとメッセージに挿入します。";
       copyAllPlaceholders.hidden = false;
     }
 
     function markCopiedPlaceholder(button) {
-      Array.prototype.forEach.call(placeholderList.querySelectorAll(".is-copied"), function (el) {
-        el.classList.remove("is-copied");
-      });
+      Array.prototype.forEach.call(
+        placeholderList.querySelectorAll(".is-copied"),
+        function (el) {
+          el.classList.remove("is-copied");
+        },
+      );
       if (button) {
         button.classList.add("is-copied");
       }
@@ -694,9 +1021,48 @@
       renderSourceFields([]);
       preview.hidden = true;
       clearPlaceholders();
+      syncRuleEditor();
     }
 
     renderSourceFields([]);
+
+    ruleForm.addEventListener("input", function (event) {
+      if (event.target.matches("[data-source-label]")) {
+        updateSourceCards();
+      }
+    });
+
+    root
+      .querySelector("[data-source-tabs]")
+      .addEventListener("keydown", function (event) {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+          return;
+        }
+        var buttons = root.querySelectorAll(
+          "[data-source-tabs] [data-action='select-source']",
+        );
+        var current = 0;
+        Array.prototype.forEach.call(buttons, function (tab, index) {
+          if (tab.getAttribute("aria-selected") === "true") {
+            current = index;
+          }
+        });
+        var next = event.key === "ArrowRight" ? current + 1 : current - 1;
+        if (next < 0) {
+          next = buttons.length - 1;
+        }
+        if (next >= buttons.length) {
+          next = 0;
+        }
+        updateSourceCards(next);
+        var selected = root.querySelector(
+          "[data-source-tabs] [aria-selected='true']",
+        );
+        if (selected) {
+          selected.focus();
+        }
+        event.preventDefault();
+      });
 
     destForm.addEventListener("submit", function (event) {
       event.preventDefault();
@@ -706,16 +1072,20 @@
         id: destForm.id.value,
         name: destForm.name.value,
         url: destForm.url.value,
-      }).then(function () {
-        destForm.reset();
-        destHint.hidden = true;
-        showStatus(root, "宛先を保存しました。", false);
-        return refresh();
-      }).catch(function (error) {
-        showStatus(root, errorMessage(error), true);
-      }).then(function () {
-        setDisabled(root, false);
-      });
+      })
+        .then(function () {
+          destForm.reset();
+          destHint.hidden = true;
+          syncDestinationEditor();
+          showStatus(root, "宛先を保存しました。", false);
+          return refresh();
+        })
+        .catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        })
+        .then(function () {
+          setDisabled(root, false);
+        });
     });
 
     ruleForm.addEventListener("submit", function (event) {
@@ -724,7 +1094,10 @@
       var sources = collectSources();
       var validationError = sourceValidationError(sources);
       if (validationError) {
-        showStatus(root, validationError, true);
+        if (validationError.index >= 0) {
+          updateSourceCards(validationError.index);
+        }
+        showStatus(root, validationError.message, true);
         return;
       }
       setDisabled(root, true);
@@ -735,15 +1108,22 @@
         sources: sources,
         messageTemplate: ruleForm.messageTemplate.value,
         enabled: ruleForm.enabled.checked,
-      }).then(function () {
-        resetRuleForm();
-        showStatus(root, "ルールを保存しました。新しく追加した監視対象の既存行は既読です。", false);
-        return refresh();
-      }).catch(function (error) {
-        showStatus(root, errorMessage(error), true);
-      }).then(function () {
-        setDisabled(root, false);
-      });
+      })
+        .then(function () {
+          resetRuleForm();
+          showStatus(
+            root,
+            "ルールを保存しました。新しく追加した監視対象の既存行は既読です。",
+            false,
+          );
+          return refresh();
+        })
+        .catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        })
+        .then(function () {
+          setDisabled(root, false);
+        });
     });
 
     root.addEventListener("click", function (event) {
@@ -754,7 +1134,7 @@
       var action = button.getAttribute("data-action");
       if (action === "reset-destination") {
         destForm.reset();
-        destHint.hidden = true;
+        syncDestinationEditor();
         return;
       }
       if (action === "reset-rule") {
@@ -762,16 +1142,26 @@
         return;
       }
       if (action === "add-source") {
-        root.querySelector("[data-source-fields]").insertAdjacentHTML("beforeend", sourceCardHtml({}));
-        updateSourceCards();
+        var fields = root.querySelector("[data-source-fields]");
+        fields.insertAdjacentHTML("beforeend", sourceCardHtml({}));
+        var added = sourceCards();
+        updateSourceCards(added.length - 1);
+        added[added.length - 1].querySelector("[data-source-label]").focus();
+        return;
+      }
+      if (action === "select-source") {
+        updateSourceCards(Number(button.getAttribute("data-source-index")));
         return;
       }
       if (action === "remove-source") {
-        if (root.querySelectorAll("[data-source-card]").length < 2) {
+        var cards = sourceCards();
+        if (cards.length < 2) {
           return;
         }
-        button.closest("[data-source-card]").remove();
-        updateSourceCards();
+        var card = button.closest("[data-source-card]");
+        var index = Array.prototype.indexOf.call(cards, card);
+        card.remove();
+        updateSourceCards(Math.min(index, sourceCards().length - 1));
         return;
       }
       if (action === "load-sheets") {
@@ -781,20 +1171,38 @@
         }
         showStatus(root, "", false);
         setDisabled(root, true);
-        gasRun("apiDescribeSpreadsheet", loadCard.querySelector("[data-source-url]").value).then(function (meta) {
-          fillSheetOptions(loadCard, meta.sheets, loadCard.querySelector("[data-source-sheet]").value);
-          showStatus(root, "シート一覧を読み込みました（" + meta.title + "）。", false);
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun(
+          "apiDescribeSpreadsheet",
+          loadCard.querySelector("[data-source-url]").value,
+        )
+          .then(function (meta) {
+            fillSheetOptions(
+              loadCard,
+              meta.sheets,
+              loadCard.querySelector("[data-source-sheet]").value,
+            );
+            showStatus(
+              root,
+              "シート一覧を読み込みました（" + meta.title + "）。",
+              false,
+            );
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
       if (action === "load-placeholders") {
         var headerSource = collectSources()[0] || {};
         if (!headerSource.spreadsheetUrl || !headerSource.sheetName) {
-          showStatus(root, "先頭の監視対象にスプレッドシートとシートを入力してください。", true);
+          showStatus(
+            root,
+            "先頭の監視対象にスプレッドシートとシートを入力してください。",
+            true,
+          );
           return;
         }
         showStatus(root, "", false);
@@ -805,44 +1213,77 @@
           messageTemplate: ruleForm.messageTemplate.value,
           ruleName: ruleForm.name.value || "プレビュー",
           sourceName: headerSource.label,
-        }).then(function (result) {
-          renderPlaceholders(result.headers, headerSource.label);
-          if (placeholderList.children.length) {
-            showStatus(root, "列名を読み込みました。", false);
-          }
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        })
+          .then(function (result) {
+            renderPlaceholders(result.headers, headerSource.label);
+            if (placeholderList.children.length) {
+              showStatus(root, "列名を読み込みました。", false);
+            }
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
-      if (action === "copy-placeholder" || action === "copy-all-placeholders") {
-        var tokens = action === "copy-all-placeholders"
-          ? Array.prototype.map.call(placeholderList.querySelectorAll("[data-placeholder]"), function (chip) {
+      if (action === "copy-placeholder") {
+        var token = button.getAttribute("data-placeholder");
+        if (!token) {
+          showStatus(root, "先に列名を取得してください。", true);
+          return;
+        }
+        insertPlaceholder(ruleForm.messageTemplate, token);
+        markCopiedPlaceholder(button);
+        copyText(token)
+          .then(function () {
+            showStatus(
+              root,
+              token + " をメッセージに挿入し、コピーしました。",
+              false,
+            );
+          })
+          .catch(function () {
+            showStatus(root, token + " をメッセージに挿入しました。", false);
+          });
+        return;
+      }
+      if (action === "copy-all-placeholders") {
+        var tokens = Array.prototype.map
+          .call(
+            placeholderList.querySelectorAll("[data-placeholder]"),
+            function (chip) {
               return chip.getAttribute("data-placeholder");
-            })
-          : [button.getAttribute("data-placeholder")];
-        tokens = tokens.filter(Boolean);
+            },
+          )
+          .filter(Boolean);
         if (!tokens.length) {
           showStatus(root, "先に列名を取得してください。", true);
           return;
         }
-        var payload = tokens.join("\n");
-        copyText(payload).then(function () {
-          markCopiedPlaceholder(action === "copy-placeholder" ? button : null);
-          showStatus(root, action === "copy-all-placeholders"
-            ? "すべてのプレースホルダーをコピーしました。"
-            : payload + " をコピーしました。", false);
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        });
+        copyText(tokens.join("\n"))
+          .then(function () {
+            markCopiedPlaceholder(null);
+            showStatus(
+              root,
+              "すべてのプレースホルダーをコピーしました。",
+              false,
+            );
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          });
         return;
       }
       if (action === "fill-template" || action === "preview-template") {
         var previewSource = collectSources()[0] || {};
         if (!previewSource.spreadsheetUrl || !previewSource.sheetName) {
-          showStatus(root, "先頭の監視対象にスプレッドシートとシートを入力してください。", true);
+          showStatus(
+            root,
+            "先頭の監視対象にスプレッドシートとシートを入力してください。",
+            true,
+          );
           return;
         }
         showStatus(root, "", false);
@@ -853,30 +1294,39 @@
           messageTemplate: ruleForm.messageTemplate.value,
           ruleName: ruleForm.name.value || "プレビュー",
           sourceName: previewSource.label,
-        }).then(function (result) {
-          if (action === "fill-template" || !ruleForm.messageTemplate.value.trim()) {
-            ruleForm.messageTemplate.value = result.suggestedTemplate;
-          }
-          preview.hidden = false;
-          preview.textContent = result.preview;
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        })
+          .then(function (result) {
+            if (
+              action === "fill-template" ||
+              !ruleForm.messageTemplate.value.trim()
+            ) {
+              ruleForm.messageTemplate.value = result.suggestedTemplate;
+            }
+            preview.hidden = false;
+            preview.textContent = result.preview;
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
 
       var editDest = button.getAttribute("data-edit-destination");
       if (editDest) {
-        var destination = bootstrap.destinations.filter(function (item) { return item.id === editDest; })[0];
+        var destination = bootstrap.destinations.filter(function (item) {
+          return item.id === editDest;
+        })[0];
         if (!destination) {
           return;
         }
         destForm.id.value = destination.id;
         destForm.name.value = destination.name;
         destForm.url.value = "";
-        destHint.hidden = false;
+        syncDestinationEditor();
+        destForm.scrollIntoView({ behavior: "smooth", block: "start" });
         destForm.name.focus();
         return;
       }
@@ -886,19 +1336,24 @@
           return;
         }
         setDisabled(root, true);
-        gasRun("apiDeleteDestination", deleteDest).then(function () {
-          showStatus(root, "宛先を削除しました。", false);
-          return refresh();
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun("apiDeleteDestination", deleteDest)
+          .then(function () {
+            showStatus(root, "宛先を削除しました。", false);
+            return refresh();
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
       var editRule = button.getAttribute("data-edit-rule");
       if (editRule) {
-        var rule = bootstrap.rules.filter(function (item) { return item.id === editRule; })[0];
+        var rule = bootstrap.rules.filter(function (item) {
+          return item.id === editRule;
+        })[0];
         if (!rule) {
           return;
         }
@@ -908,43 +1363,75 @@
         ruleForm.messageTemplate.value = rule.messageTemplate;
         ruleForm.enabled.checked = !!rule.enabled;
         renderSourceFields(rule.sources);
-        Array.prototype.forEach.call(root.querySelectorAll("[data-source-card]"), function (card) {
-          var selectedSheet = card.querySelector("[data-source-sheet]").value;
-          gasRun("apiDescribeSpreadsheet", card.querySelector("[data-source-url]").value).then(function (meta) {
-            fillSheetOptions(card, meta.sheets, selectedSheet);
-          }).catch(function () {});
-        });
+        preview.hidden = true;
+        clearPlaceholders();
+        syncRuleEditor();
+        Array.prototype.forEach.call(
+          root.querySelectorAll("[data-source-card]"),
+          function (card) {
+            var selectedSheet = card.querySelector("[data-source-sheet]").value;
+            gasRun(
+              "apiDescribeSpreadsheet",
+              card.querySelector("[data-source-url]").value,
+            )
+              .then(function (meta) {
+                fillSheetOptions(card, meta.sheets, selectedSheet);
+              })
+              .catch(function () {});
+          },
+        );
+        ruleForm.scrollIntoView({ behavior: "smooth", block: "start" });
         ruleForm.name.focus();
         return;
       }
       var testRule = button.getAttribute("data-test-rule");
       if (testRule) {
-        var testTarget = bootstrap.rules.filter(function (item) { return item.id === testRule; })[0];
-        var testCount = testTarget && testTarget.sources ? testTarget.sources.length : 0;
-        if (testCount > 1 && !window.confirm("監視対象 " + testCount + " 件へテスト通知を送ります。")) {
+        var testTarget = bootstrap.rules.filter(function (item) {
+          return item.id === testRule;
+        })[0];
+        var testCount =
+          testTarget && testTarget.sources ? testTarget.sources.length : 0;
+        if (
+          testCount > 1 &&
+          !window.confirm(
+            "監視対象 " + testCount + " 件へテスト通知を送ります。",
+          )
+        ) {
           return;
         }
         setDisabled(root, true);
-        gasRun("apiTestNotify", testRule).then(function (result) {
-          showStatus(root, result && result.sent > 1 ? "テスト通知を " + result.sent + " 件送りました。" : "テスト通知を送りました。", false);
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun("apiTestNotify", testRule)
+          .then(function (result) {
+            showStatus(
+              root,
+              result && result.sent > 1
+                ? "テスト通知を " + result.sent + " 件送りました。"
+                : "テスト通知を送りました。",
+              false,
+            );
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
       var readRule = button.getAttribute("data-read-rule");
       if (readRule) {
         setDisabled(root, true);
-        gasRun("apiMarkRead", readRule).then(function () {
-          showStatus(root, "現在の最終行まで既読にしました。", false);
-          return refresh();
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun("apiMarkRead", readRule)
+          .then(function () {
+            showStatus(root, "現在の最終行まで既読にしました。", false);
+            return refresh();
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
         return;
       }
       var deleteRule = button.getAttribute("data-delete-rule");
@@ -953,14 +1440,17 @@
           return;
         }
         setDisabled(root, true);
-        gasRun("apiDeleteRule", deleteRule).then(function () {
-          showStatus(root, "ルールを削除しました。", false);
-          return refresh();
-        }).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun("apiDeleteRule", deleteRule)
+          .then(function () {
+            showStatus(root, "ルールを削除しました。", false);
+            return refresh();
+          })
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
       }
     });
 
@@ -974,9 +1464,19 @@
     var summary = root.querySelector("[data-trigger-summary]");
 
     function render(status) {
-      form.everyMinutes.innerHTML = (status.allowedMinutes || [5]).map(function (minutes) {
-        return '<option value="' + escapeHtml(String(minutes)) + '"' + (Number(status.everyMinutes) === minutes ? " selected" : "") + ">" + escapeHtml(String(minutes)) + "分</option>";
-      }).join("");
+      form.everyMinutes.innerHTML = (status.allowedMinutes || [5])
+        .map(function (minutes) {
+          return (
+            '<option value="' +
+            escapeHtml(String(minutes)) +
+            '"' +
+            (Number(status.everyMinutes) === minutes ? " selected" : "") +
+            ">" +
+            escapeHtml(String(minutes)) +
+            "分</option>"
+          );
+        })
+        .join("");
       form.enabled.checked = !!status.enabled;
       summary.textContent = status.enabled
         ? "現在は " + status.everyMinutes + " 分ごとにチェックしています。"
@@ -989,14 +1489,23 @@
       gasRun("apiSetTrigger", {
         enabled: form.enabled.checked,
         everyMinutes: Number(form.everyMinutes.value),
-      }).then(function (status) {
-        render(status);
-        showStatus(root, status.enabled ? "トリガーを保存しました。" : "定期チェックを停止しました。", false);
-      }).catch(function (error) {
-        showStatus(root, errorMessage(error), true);
-      }).then(function () {
-        setDisabled(root, false);
-      });
+      })
+        .then(function (status) {
+          render(status);
+          showStatus(
+            root,
+            status.enabled
+              ? "トリガーを保存しました。"
+              : "定期チェックを停止しました。",
+            false,
+          );
+        })
+        .catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        })
+        .then(function () {
+          setDisabled(root, false);
+        });
     });
 
     root.addEventListener("click", function (event) {
@@ -1005,19 +1514,36 @@
         return;
       }
       setDisabled(root, true);
-      gasRun("apiCheckNow").then(function (result) {
-        var extra = result.errors && result.errors.length ? " / " + result.errors.join(" ") : "";
-        showStatus(root, "チェック完了: " + result.checked + " 件中 " + result.notified + " 件通知" + extra, !result.ok);
-      }).catch(function (error) {
-        showStatus(root, errorMessage(error), true);
-      }).then(function () {
-        setDisabled(root, false);
-      });
+      gasRun("apiCheckNow")
+        .then(function (result) {
+          var extra =
+            result.errors && result.errors.length
+              ? " / " + result.errors.join(" ")
+              : "";
+          showStatus(
+            root,
+            "チェック完了: " +
+              result.checked +
+              " 件中 " +
+              result.notified +
+              " 件通知" +
+              extra,
+            !result.ok,
+          );
+        })
+        .catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        })
+        .then(function () {
+          setDisabled(root, false);
+        });
     });
 
-    gasRun("apiGetTrigger").then(render).catch(function (error) {
-      showStatus(root, errorMessage(error), true);
-    });
+    gasRun("apiGetTrigger")
+      .then(render)
+      .catch(function (error) {
+        showStatus(root, errorMessage(error), true);
+      });
   }
 
   function initLogsPage(root) {
@@ -1028,17 +1554,35 @@
         list.innerHTML = '<p class="empty-inline">ログはまだありません。</p>';
         return;
       }
-      list.innerHTML = '<ul class="item-list">' + logs.map(function (item) {
-        return "<li><div><strong>" + (item.ok ? "成功" : "失敗") + "</strong>" +
-          '<span class="meta">' + escapeHtml(formatTime(item.at)) + (item.ruleName ? " / " + escapeHtml(item.ruleName) : "") + "</span>" +
-          '<span class="meta' + (item.ok ? "" : " is-error") + '">' + escapeHtml(item.detail) + "</span></div></li>";
-      }).join("") + "</ul>";
+      list.innerHTML =
+        '<ul class="item-list">' +
+        logs
+          .map(function (item) {
+            return (
+              "<li><div><strong>" +
+              (item.ok ? "成功" : "失敗") +
+              "</strong>" +
+              '<span class="meta">' +
+              escapeHtml(formatTime(item.at)) +
+              (item.ruleName ? " / " + escapeHtml(item.ruleName) : "") +
+              "</span>" +
+              '<span class="meta' +
+              (item.ok ? "" : " is-error") +
+              '">' +
+              escapeHtml(item.detail) +
+              "</span></div></li>"
+            );
+          })
+          .join("") +
+        "</ul>";
     }
 
     function loadLogs() {
-      return gasRun("apiListLogs").then(render).catch(function (error) {
-        showStatus(root, errorMessage(error), true);
-      });
+      return gasRun("apiListLogs")
+        .then(render)
+        .catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        });
     }
 
     root.addEventListener("click", function (event) {
@@ -1058,11 +1602,14 @@
           return;
         }
         setDisabled(root, true);
-        gasRun("apiClearLogs").then(render).catch(function (error) {
-          showStatus(root, errorMessage(error), true);
-        }).then(function () {
-          setDisabled(root, false);
-        });
+        gasRun("apiClearLogs")
+          .then(render)
+          .catch(function (error) {
+            showStatus(root, errorMessage(error), true);
+          })
+          .then(function () {
+            setDisabled(root, false);
+          });
       }
     });
 

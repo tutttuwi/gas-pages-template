@@ -14,7 +14,9 @@ function sheetsOpen_(spreadsheetId) {
   try {
     return SpreadsheetApp.openById(spreadsheetId);
   } catch (e) {
-    throw new Error("スプレッドシートを開けませんでした。URL と共有設定を確認してください。");
+    throw new Error(
+      "スプレッドシートを開けませんでした。URL と共有設定を確認してください。",
+    );
   }
 }
 
@@ -72,8 +74,15 @@ function sheetsFormatCell(value) {
   if (value === "" || value == null) {
     return "";
   }
-  if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value.getTime())) {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+  if (
+    Object.prototype.toString.call(value) === "[object Date]" &&
+    !isNaN(value.getTime())
+  ) {
+    return Utilities.formatDate(
+      value,
+      Session.getScriptTimeZone(),
+      "yyyy-MM-dd HH:mm:ss",
+    );
   }
   return String(value);
 }
@@ -87,7 +96,7 @@ function sheetsRowToFields(headers, row, extras) {
 }
 
 function sheetsDefaultTemplate(headers) {
-  var lines = ["*新しい回答*（{{_sourceName}}）"];
+  var lines = ["**新しい回答**（{{_sourceName}}）"];
   (headers || []).forEach(function (header) {
     lines.push("• " + header + ": {{" + header + "}}");
   });

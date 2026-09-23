@@ -281,14 +281,12 @@ body {
   padding-top: 0;
 }
 
-.source-editor,
 .source-list,
 .source-card {
   display: grid;
   gap: 0.75rem;
 }
 
-.source-editor-head,
 .source-card-head {
   display: flex;
   justify-content: space-between;
@@ -299,7 +297,57 @@ body {
 .source-card {
   padding: 0.85rem;
   background: var(--bg);
-  border-radius: 0.65rem;
+  border-radius: 0 0.65rem 0.65rem;
+}
+
+.source-card[hidden] {
+  display: none;
+}
+
+.source-switcher {
+  display: grid;
+}
+
+.source-tabbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.source-tablist {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.source-tab,
+.source-tab-add {
+  flex: 0 0 auto;
+}
+
+.source-tab {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  color: var(--muted);
+}
+
+.source-tab.is-selected {
+  background: var(--bg);
+  border-color: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.source-tab:focus-visible,
+.source-tab-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .field.checkbox input {
@@ -339,9 +387,23 @@ body {
   filter: brightness(1.05);
 }
 
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.btn:focus-visible,
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-danger {
+  color: var(--error-text);
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn-danger:hover {
+  color: var(--error-text);
+  border-color: var(--error-text);
 }
 
 .item-list {
@@ -442,6 +504,88 @@ body {
   color: var(--accent);
 }
 
+.editing-banner {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  border-radius: 0.55rem;
+}
+
+.form-section {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.form-section h3 {
+  margin: 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 1rem;
+}
+
+.form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.form-footer .btn:not(.btn-primary) {
+  margin-right: auto;
+}
+
+.sheet-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.badge.is-off {
+  background: var(--status-bg);
+  color: var(--muted);
+}
+
+.rule-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.item-list li.is-stacked {
+  flex-direction: column;
+}
+
+.item-list li.is-editing {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.preview-block:has(pre[hidden]) {
+  display: none;
+}
+
+.preview-block {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .empty {
   padding: 2.4rem 1.5rem;
 }
@@ -484,9 +628,23 @@ body {
   }
 
   .grid,
-  .item-list li {
+  .item-list li,
+  .sheet-row {
     grid-template-columns: 1fr;
     flex-direction: column;
+  }
+
+  .source-tabbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .source-tab-add {
+    align-self: flex-start;
+  }
+
+  .form-footer .btn {
+    flex: 1 1 8rem;
   }
 
   .field.checkbox {

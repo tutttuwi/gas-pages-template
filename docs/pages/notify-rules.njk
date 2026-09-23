@@ -3,7 +3,7 @@ title: 通知ルール
 order: 2
 ---
 
-<p>フォーム回答の監視と Slack 宛先を、このページから登録します。フォーム側への GAS 設置は不要です。</p>
+<p>フォームの回答先シートを監視し、新しい行だけを Slack へ送ります。</p>
 
 <div class="notice" data-local-banner hidden>ローカルプレビューです。シート参照と Slack 送信はブラウザ内のモックで動きます。</div>
 <p class="hint" data-config-link hidden></p>
@@ -11,10 +11,11 @@ order: 2
 
 <section class="panel">
   <h2>Slack 宛先</h2>
-  <p class="lede">Incoming Webhook を名前付きで保存します。複数のフォームから同じチャンネルへ送る場合は、宛先を使い回してください。</p>
+  <p class="lede">送るチャンネルごとに Webhook を1件保存します。複数のルールで使い回せます。</p>
   <div data-destination-list></div>
   <form class="stack" data-destination-form>
     <input type="hidden" name="id" />
+    <p class="editing-banner" data-destination-url-hint hidden></p>
     <div class="grid">
       <label class="field">
         <span>名前</span>
@@ -25,63 +26,75 @@ order: 2
         <input name="url" type="url" placeholder="https://hooks.slack.com/services/..." autocomplete="off" />
       </label>
     </div>
-    <p class="hint" data-destination-url-hint hidden>編集時は URL を空のままだと、保存済みの値を維持します。</p>
-    <div class="actions">
-      <button type="submit" class="btn btn-primary">宛先を保存</button>
-      <button type="button" class="btn" data-action="reset-destination">クリア</button>
+    <div class="form-footer">
+      <button type="button" class="btn" data-action="reset-destination">入力をやり直す</button>
+      <button type="submit" class="btn btn-primary" data-destination-submit>宛先を保存</button>
     </div>
   </form>
 </section>
 
 <section class="panel">
   <h2>監視ルール</h2>
-  <p class="lede">回答先スプレッドシートを複数登録できます。問い合わせフォームが増えたら監視対象を追加すると、そのシートの新しい行も同じ Slack 宛先へ送ります。追加した時点の最終行までは既読になります。</p>
+  <p class="lede">保存した時点の最終行までは既読です。それより後の行だけ通知します。</p>
   <div data-rule-list></div>
   <form class="stack" data-rule-form>
     <input type="hidden" name="id" />
-    <div class="grid">
-      <label class="field">
-        <span>ルール名</span>
-        <input name="name" required placeholder="お問い合わせフォーム" />
-      </label>
-      <label class="field">
-        <span>Slack 宛先</span>
-        <select name="destinationId" required></select>
-      </label>
-    </div>
-    <div class="source-editor">
-      <div class="source-editor-head">
-        <span>監視対象のスプレッドシート</span>
-        <button type="button" class="btn" data-action="add-source">追加</button>
+    <p class="editing-banner" data-rule-editing hidden></p>
+    <div class="form-section">
+      <h3>送り先</h3>
+      <div class="grid">
+        <label class="field">
+          <span>ルール名</span>
+          <input name="name" required placeholder="お問い合わせフォーム" />
+        </label>
+        <label class="field">
+          <span>Slack 宛先</span>
+          <select name="destinationId" required></select>
+        </label>
       </div>
-      <p class="hint">問い合わせフォームA → シートA、のように名前と回答先を並べます。フォームが増えたら「追加」して保存してください。</p>
-      <div class="source-list" data-source-fields></div>
+      <label class="field checkbox solo">
+        <input name="enabled" type="checkbox" checked />
+        <span>このルールを有効にする</span>
+      </label>
     </div>
-    <label class="field checkbox solo">
-      <input name="enabled" type="checkbox" checked />
-      <span>このルールを有効にする</span>
-    </label>
-    <label class="field">
-      <span>通知メッセージ</span>
-      <textarea name="messageTemplate" rows="8" placeholder="{% raw %}*新しい回答*（{{_sourceName}}）&#10;• 氏名: {{氏名}}{% endraw %}"></textarea>
-    </label>
-    <p class="hint">列名は <code>{% raw %}{{列名}}{% endraw %}</code> で埋め込めます。ほかに <code>{% raw %}{{_sourceName}}{% endraw %}</code> <code>{% raw %}{{_ruleName}}{% endraw %}</code> <code>{% raw %}{{_sheetName}}{% endraw %}</code> <code>{% raw %}{{_rowNumber}}{% endraw %}</code> が使えます。空欄で保存すると、先頭の監視対象の列名から雛形を作ります。フォームごとに列が違うときは、共通の列名だけを書いてください。</p>
-    <div class="placeholder-picker" data-placeholder-picker>
-      <div class="placeholder-picker-head">
-        <span data-placeholder-label>先頭の監視対象から列名を読み込みます。</span>
-        <div class="actions">
-          <button type="button" class="btn" data-action="load-placeholders">列名を取得</button>
+    <div class="form-section">
+      <h3>監視するシート</h3>
+      <p class="hint">フォームごとにタブを追加します。表示中のタブだけ編集できます。</p>
+      <div class="source-switcher">
+        <div class="source-tabbar">
+          <div class="source-tablist" role="tablist" aria-label="監視対象" data-source-tabs></div>
+          <button type="button" class="btn source-tab-add" data-action="add-source">追加</button>
+        </div>
+        <div class="source-list" data-source-fields></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <h3>通知メッセージ</h3>
+      <label class="field">
+        <span>空欄のまま保存すると、先頭のシートの列名から雛形を作ります。</span>
+        <textarea name="messageTemplate" rows="8" placeholder="{% raw %}**新しい回答**（{{_sourceName}}）&#10;• 氏名: {{氏名}}{% endraw %}"></textarea>
+      </label>
+      <p class="hint">列の値は <code>{% raw %}{{列名}}{% endraw %}</code> です。ほかに <code>{% raw %}{{_sourceName}}{% endraw %}</code> <code>{% raw %}{{_ruleName}}{% endraw %}</code> <code>{% raw %}{{_sheetName}}{% endraw %}</code> <code>{% raw %}{{_rowNumber}}{% endraw %}</code> が使えます。</p>
+      <div class="actions">
+        <button type="button" class="btn" data-action="load-placeholders">列名を取得</button>
+        <button type="button" class="btn" data-action="fill-template">雛形を入れる</button>
+        <button type="button" class="btn" data-action="preview-template">プレビュー</button>
+      </div>
+      <div class="placeholder-picker" data-placeholder-picker>
+        <div class="placeholder-picker-head">
+          <span data-placeholder-label>列名を取得すると、クリックでメッセージへ挿入できます。</span>
           <button type="button" class="btn" data-action="copy-all-placeholders" hidden>すべてコピー</button>
         </div>
+        <div class="placeholder-list" data-placeholder-list></div>
       </div>
-      <div class="placeholder-list" data-placeholder-list></div>
+      <div class="preview-block">
+        <p class="hint">先頭の監視対象の最新行で置き換えた結果</p>
+        <pre class="preview" data-preview hidden></pre>
+      </div>
     </div>
-    <div class="actions">
-      <button type="button" class="btn" data-action="fill-template">ヘッダーから雛形を作る</button>
-      <button type="button" class="btn" data-action="preview-template">プレビュー</button>
-      <button type="submit" class="btn btn-primary">ルールを保存</button>
-      <button type="button" class="btn" data-action="reset-rule">クリア</button>
+    <div class="form-footer">
+      <button type="button" class="btn" data-action="reset-rule">入力をやり直す</button>
+      <button type="submit" class="btn btn-primary" data-rule-submit>ルールを保存</button>
     </div>
-    <pre class="preview" data-preview hidden></pre>
   </form>
 </section>
