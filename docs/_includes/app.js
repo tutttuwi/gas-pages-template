@@ -197,12 +197,44 @@
     };
   }
 
+  function placeholderToken(name) {
+    // このファイルは HTML に include される。波括弧を2つ続けると Nunjucks が変数として消す。
+    return "{" + "{" + String(name) + "}" + "}";
+  }
+
   function mockDefaultTemplate(headers) {
-    return ["*新しい回答*（{{_sourceName}}）"].concat(
+    return ["*新しい回答*（" + placeholderToken("_sourceName") + "）"].concat(
       headers.map(function (header) {
-        return "• " + header + ": {{" + header + "}}";
+        return "• " + header + ": " + placeholderToken(header);
       }),
     ).join("\n");
+  }
+
+  function copyText(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.left = "0";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    var copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (error) {
+      copied = false;
+    }
+    area.remove();
+    if (copied) {
+      return Promise.resolve();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return Promise.reject(new Error("クリップボードにコピーできませんでした。"));
   }
 
   function mockPlain(value) {
@@ -237,6 +269,7 @@
           allowedMinutes: [1, 5, 10, 15, 30, 60],
         },
         logs: state.logs,
+        configUrl: "",
       };
     }
     if (name === "apiDescribeSpreadsheet") {
@@ -457,6 +490,9 @@
     var ruleList = root.querySelector("[data-rule-list]");
     var preview = root.querySelector("[data-preview]");
     var destHint = root.querySelector("[data-destination-url-hint]");
+    var placeholderList = root.querySelector("[data-placeholder-list]");
+    var placeholderLabel = root.querySelector("[data-placeholder-label]");
+    var copyAllPlaceholders = root.querySelector("[data-action='copy-all-placeholders']");
     var bootstrap = { destinations: [], rules: [] };
 
     function refresh() {
@@ -464,8 +500,25 @@
         bootstrap = data;
         renderDestinations();
         renderRules();
+        renderConfigLink(data.configUrl);
         renderDestinationOptions(ruleForm.destinationId, data.destinations, ruleForm.destinationId.value);
       });
+    }
+
+    function renderConfigLink(configUrl) {
+      var el = root.querySelector("[data-config-link]");
+      if (!el || isLocal) {
+        if (el) {
+          el.hidden = true;
+        }
+        return;
+      }
+      el.hidden = false;
+      if (configUrl) {
+        el.innerHTML = '設定は <a href="' + escapeHtml(configUrl) + '" target="_blank" rel="noopener">GAS Pages 設定</a> に保存しています。デプロイしたアカウントのマイドライブにあり、Webhook URL が入るので共有しないでください。';
+        return;
+      }
+      el.textContent = "最初の保存で、マイドライブに「GAS Pages 設定」を作ります。Webhook URL が入るので、そのファイルは共有しないでください。";
     }
 
     function renderDestinations() {
@@ -602,11 +655,45 @@
       return "";
     }
 
+    function clearPlaceholders() {
+      placeholderList.innerHTML = "";
+      placeholderLabel.textContent = "先頭の監視対象から列名を読み込みます。";
+      copyAllPlaceholders.hidden = true;
+    }
+
+    function renderPlaceholders(headers, sourceLabel) {
+      var names = (headers || []).map(function (header) {
+        return String(header || "").trim();
+      }).filter(Boolean);
+      if (!names.length) {
+        clearPlaceholders();
+        showStatus(root, "列名が見つかりませんでした。", true);
+        return;
+      }
+      placeholderList.innerHTML = names.map(function (name) {
+        var token = placeholderToken(name);
+        return '<button type="button" class="btn placeholder-chip" data-action="copy-placeholder" data-placeholder="' +
+          escapeHtml(token) + '">' + escapeHtml(token) + "</button>";
+      }).join("");
+      placeholderLabel.textContent = (sourceLabel ? sourceLabel + " の" : "") + "列名です。クリックするとコピーします。";
+      copyAllPlaceholders.hidden = false;
+    }
+
+    function markCopiedPlaceholder(button) {
+      Array.prototype.forEach.call(placeholderList.querySelectorAll(".is-copied"), function (el) {
+        el.classList.remove("is-copied");
+      });
+      if (button) {
+        button.classList.add("is-copied");
+      }
+    }
+
     function resetRuleForm() {
       ruleForm.reset();
       ruleForm.enabled.checked = true;
       renderSourceFields([]);
       preview.hidden = true;
+      clearPlaceholders();
     }
 
     renderSourceFields([]);
@@ -701,6 +788,54 @@
           showStatus(root, errorMessage(error), true);
         }).then(function () {
           setDisabled(root, false);
+        });
+        return;
+      }
+      if (action === "load-placeholders") {
+        var headerSource = collectSources()[0] || {};
+        if (!headerSource.spreadsheetUrl || !headerSource.sheetName) {
+          showStatus(root, "先頭の監視対象にスプレッドシートとシートを入力してください。", true);
+          return;
+        }
+        showStatus(root, "", false);
+        setDisabled(root, true);
+        gasRun("apiPreviewTemplate", {
+          spreadsheetUrl: headerSource.spreadsheetUrl,
+          sheetName: headerSource.sheetName,
+          messageTemplate: ruleForm.messageTemplate.value,
+          ruleName: ruleForm.name.value || "プレビュー",
+          sourceName: headerSource.label,
+        }).then(function (result) {
+          renderPlaceholders(result.headers, headerSource.label);
+          if (placeholderList.children.length) {
+            showStatus(root, "列名を読み込みました。", false);
+          }
+        }).catch(function (error) {
+          showStatus(root, errorMessage(error), true);
+        }).then(function () {
+          setDisabled(root, false);
+        });
+        return;
+      }
+      if (action === "copy-placeholder" || action === "copy-all-placeholders") {
+        var tokens = action === "copy-all-placeholders"
+          ? Array.prototype.map.call(placeholderList.querySelectorAll("[data-placeholder]"), function (chip) {
+              return chip.getAttribute("data-placeholder");
+            })
+          : [button.getAttribute("data-placeholder")];
+        tokens = tokens.filter(Boolean);
+        if (!tokens.length) {
+          showStatus(root, "先に列名を取得してください。", true);
+          return;
+        }
+        var payload = tokens.join("\n");
+        copyText(payload).then(function () {
+          markCopiedPlaceholder(action === "copy-placeholder" ? button : null);
+          showStatus(root, action === "copy-all-placeholders"
+            ? "すべてのプレースホルダーをコピーしました。"
+            : payload + " をコピーしました。", false);
+        }).catch(function (error) {
+          showStatus(root, errorMessage(error), true);
         });
         return;
       }

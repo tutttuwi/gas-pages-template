@@ -4,6 +4,7 @@ function apiGetBootstrap() {
     rules: storeGetRules().map(apiPublicRule_),
     trigger: triggersGetStatus(),
     logs: storeGetLogs(),
+    configUrl: storeGetConfigUrl(),
   };
 }
 

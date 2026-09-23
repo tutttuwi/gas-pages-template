@@ -6,6 +6,7 @@ order: 2
 <p>フォーム回答の監視と Slack 宛先を、このページから登録します。フォーム側への GAS 設置は不要です。</p>
 
 <div class="notice" data-local-banner hidden>ローカルプレビューです。シート参照と Slack 送信はブラウザ内のモックで動きます。</div>
+<p class="hint" data-config-link hidden></p>
 <p class="status" data-status hidden></p>
 
 <section class="panel">
@@ -62,9 +63,19 @@ order: 2
     </label>
     <label class="field">
       <span>通知メッセージ</span>
-      <textarea name="messageTemplate" rows="8" placeholder="*新しい回答*（{{_sourceName}}）&#10;• 氏名: {{氏名}}"></textarea>
+      <textarea name="messageTemplate" rows="8" placeholder="{% raw %}*新しい回答*（{{_sourceName}}）&#10;• 氏名: {{氏名}}{% endraw %}"></textarea>
     </label>
-    <p class="hint">列名は <code>{{列名}}</code> で埋め込めます。ほかに <code>{{_sourceName}}</code> <code>{{_ruleName}}</code> <code>{{_sheetName}}</code> <code>{{_rowNumber}}</code> が使えます。空欄で保存すると、先頭の監視対象の列名から雛形を作ります。フォームごとに列が違うときは、共通の列名だけを書いてください。</p>
+    <p class="hint">列名は <code>{% raw %}{{列名}}{% endraw %}</code> で埋め込めます。ほかに <code>{% raw %}{{_sourceName}}{% endraw %}</code> <code>{% raw %}{{_ruleName}}{% endraw %}</code> <code>{% raw %}{{_sheetName}}{% endraw %}</code> <code>{% raw %}{{_rowNumber}}{% endraw %}</code> が使えます。空欄で保存すると、先頭の監視対象の列名から雛形を作ります。フォームごとに列が違うときは、共通の列名だけを書いてください。</p>
+    <div class="placeholder-picker" data-placeholder-picker>
+      <div class="placeholder-picker-head">
+        <span data-placeholder-label>先頭の監視対象から列名を読み込みます。</span>
+        <div class="actions">
+          <button type="button" class="btn" data-action="load-placeholders">列名を取得</button>
+          <button type="button" class="btn" data-action="copy-all-placeholders" hidden>すべてコピー</button>
+        </div>
+      </div>
+      <div class="placeholder-list" data-placeholder-list></div>
+    </div>
     <div class="actions">
       <button type="button" class="btn" data-action="fill-template">ヘッダーから雛形を作る</button>
       <button type="button" class="btn" data-action="preview-template">プレビュー</button>
